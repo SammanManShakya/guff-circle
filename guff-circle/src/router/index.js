@@ -1,0 +1,36 @@
+// src/router/index.js
+import { createRouter, createWebHistory } from 'vue-router'
+
+const routes = [
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('../components/Register.vue'),
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('../components/Login.vue'),
+  },
+  {
+    path: '/feed',
+    name: 'Feed',
+    component: () => import('../components/Feed.vue'),
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('../components/Profile.vue'),
+  },
+  {
+    path: '/',
+    redirect: '/login',
+  },
+]
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes
+})
+
+export default router
