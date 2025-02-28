@@ -22,9 +22,6 @@
     <div v-else>
       <Navbar />
       <div class="content">
-        <h1>This is content in app, everything below is Feed.vue. Remove content above feed later.</h1>
-        <button @click="signOutUser">Sign Out</button>
-        <!-- router-view for Feed, Profile, etc. -->
         <router-view></router-view>
       </div>
     </div>
