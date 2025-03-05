@@ -1,7 +1,5 @@
-<!-- src/App.vue -->
 <template>
   <div class="app-container">
-    <!-- Authentication forms (when not logged in) -->
     <div v-if="!isLoggedIn">
       <div v-if="showLogin">
         <LoginForm @loggedIn="handleLoggedIn" />
@@ -18,7 +16,6 @@
         </p>
       </div>
     </div>
-    <!-- When logged in, show the Navbar and member area -->
     <div v-else>
       <Navbar />
       <div class="content">
@@ -88,7 +85,6 @@ export default {
   max-width: 800px;
   margin: auto;
   text-align: center;
-  /* Add top padding to ensure content isn't hidden behind the fixed navbar */
   padding-top: 70px;
 }
 .content {

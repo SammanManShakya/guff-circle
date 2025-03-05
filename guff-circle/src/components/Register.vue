@@ -58,7 +58,21 @@ export default {
       signInWithPopup(auth, provider)
         .then((result) => {
           console.log(result.user);
-          // Optionally, create the Firestore document for Google users if needed.
+          // Create a document in the "users" collection using the Google user's info.
+          return setDoc(
+            doc(db, "users", result.user.uid),
+            {
+              user_id: result.user.uid,
+              username: result.user.displayName || "Anonymous",
+              followers: 0,
+              following: 0,
+              posts: 0,
+              user_circles: []
+            },
+            { merge: true } // Merge in case a document exists
+          );
+        })
+        .then(() => {
           this.$emit('loggedIn');
           this.$router.push("/feed");
         })

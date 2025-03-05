@@ -11,7 +11,6 @@
           </div>
         </div>
       </div>
-      <!-- Tab navbar to switch between posts and circles -->
       <div class="tab-navbar">
         <button
           :class="{ active: activeTab === 'My Posts' }"
@@ -26,14 +25,11 @@
           My Circles
         </button>
       </div>
-      <!-- Tab content area -->
       <div class="tab-content">
         <div v-if="activeTab === 'My Posts'">
-          <!-- Replace this with actual posts listing -->
           <p>User posts go here.</p>
         </div>
         <div v-else-if="activeTab === 'My Circles'">
-          <!-- Replace this with actual circles content -->
           <p>User circles go here.</p>
         </div>
       </div>
@@ -60,7 +56,7 @@
     },
     computed: {
       profileImage() {
-        // Use photoURL if available (Google registration), else fall back to local image.
+        // Use photoURL if available or blank pfp
         return auth.currentUser && auth.currentUser.photoURL
           ? auth.currentUser.photoURL
           : blankProfile;
@@ -72,7 +68,7 @@
       }
     },
     created() {
-      // Fetch the user's stats from Firestore "users" collection.
+      // Fetch the user info from Firestore 
       if (auth.currentUser) {
         const userDocRef = doc(db, "users", auth.currentUser.uid);
         getDoc(userDocRef)
