@@ -33,18 +33,18 @@ export default {
           // Update the user's profile with the chosen username.
           return updateProfile(userCredential.user, { displayName: this.username })
             .then(() => {
-              // Create a document in the "users" collection with additional fields.
+              // Create a document in the "users" collection with default stats.
               return setDoc(doc(db, "users", userCredential.user.uid), {
                 user_id: userCredential.user.uid,
                 username: this.username,
-                followers: 0,
-                following: 0,
-                posts: 0,
+                followers: [],
+                following: [],
+                posts: [],
                 user_circles: []
               });
             })
             .then(() => {
-              console.log("Successfully registered, profile updated, and user document created.");
+              console.log("Registered, profile updated, and Firestore document created.");
               this.$emit('loggedIn');
             });
         })
@@ -57,19 +57,19 @@ export default {
       const provider = new GoogleAuthProvider();
       signInWithPopup(auth, provider)
         .then((result) => {
-          console.log(result.user);
-          // Create a document in the "users" collection using the Google user's info.
+          console.log("Google sign in result:", result.user);
+          // Create or update the Firestore document for this Google user.
           return setDoc(
             doc(db, "users", result.user.uid),
             {
               user_id: result.user.uid,
               username: result.user.displayName || "Anonymous",
-              followers: 0,
-              following: 0,
-              posts: 0,
+              followers: [],
+              following: [],
+              posts: [],
               user_circles: []
             },
-            { merge: true } // Merge in case a document exists
+            { merge: true }
           );
         })
         .then(() => {

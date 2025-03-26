@@ -23,6 +23,11 @@ const routes = [
     component: () => import('../components/Profile.vue'),
   },
   {
+    path: '/search-results',
+    name: 'SearchResults',
+    component: () => import('../components/SearchResults.vue'),
+  },
+  {
     path: '/',
     redirect: '/login',
   },

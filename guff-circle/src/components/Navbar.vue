@@ -8,12 +8,15 @@
       <router-link class="nav-link" to="/profile">Profile</router-link>
     </div>
     <div class="navbar-right">
-      <input
-        type="text"
-        placeholder="Search..."
-        v-model="searchQuery"
-        @input="handleSearch"
-      />
+      <!-- Using a form so that Enter triggers a submit -->
+      <form @submit.prevent="goToSearchResults">
+        <input
+          type="text"
+          placeholder="Search..."
+          v-model="searchQuery"
+          @input="handleSearch"
+        />
+      </form>
     </div>
   </nav>
 </template>
@@ -29,6 +32,24 @@ export default {
   methods: {
     handleSearch() {
       console.log("Search query:", this.searchQuery);
+    },
+    goToSearchResults() {
+      console.log("Redirecting to SearchResults with query:", this.searchQuery);
+      // Redirect to the SearchResults route with the search query as a query parameter.
+      this.$router.push({ name: 'SearchResults', query: { q: this.searchQuery } });
+      // Clear the search input after redirection.
+      this.searchQuery = "";
+    }
+  },
+  // Vue 3 debug hooks for tracking reactive dependencies.
+  renderTracked(e) {
+    if (e && e.key === 'searchQuery') {
+      console.log("renderTracked hook: searchQuery =", this.searchQuery);
+    }
+  },
+  renderTriggered(e) {
+    if (e && e.key === 'searchQuery') {
+      console.log("renderTriggered hook: searchQuery =", this.searchQuery);
     }
   }
 }
@@ -44,8 +65,8 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #734f96; /* Lavender shade */
-  color: white; /* Default text color is white */
+  background-color: #734f96;
+  color: white;
   padding: 10px 20px;
 }
 .navbar-left {
@@ -65,8 +86,8 @@ export default {
 }
 .navbar-center .nav-link.router-link-active {
   background-color: white;
-  color: black; /* Active pill text color is black */
-  border-radius: 20px;  /* Pill shape */
+  color: black;
+  border-radius: 20px;
   padding: 5px 10px;
 }
 .navbar-right {
