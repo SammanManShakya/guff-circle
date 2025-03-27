@@ -34,7 +34,8 @@ const routes = [
   {
     path: '/visit-profile/:userId',
     name: 'VisitProfile',
-    component:() => import('../components/VisitProfile.vue'),
+    component: () => import('../components/VisitProfile.vue'),
+    props: true
   }
 ]
 
