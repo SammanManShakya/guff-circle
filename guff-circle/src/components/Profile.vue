@@ -9,6 +9,10 @@
           <span>{{ userStats.followers }} Followers</span>
           <span>{{ userStats.following }} Following</span>
         </div>
+        <!-- Create गफ Circle button -->
+        <button @click="createCircle" class="create-circle-button">
+          Create गफ Circle
+        </button>
       </div>
     </div>
     <div class="tab-navbar">
@@ -86,6 +90,12 @@ export default {
           console.error("Error fetching user stats:", error);
         });
     }
+  },
+  methods: {
+    createCircle() {
+      // Placeholder functionality. We'll implement this soon.
+      console.log("Create गफ Circle button clicked.");
+    }
   }
 };
 </script>
@@ -122,6 +132,19 @@ export default {
 }
 .user-stats span {
   margin-right: 10px;
+}
+.create-circle-button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: #734f96;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.create-circle-button:hover {
+  background-color: #5b3e7a;
 }
 .tab-navbar {
   display: flex;

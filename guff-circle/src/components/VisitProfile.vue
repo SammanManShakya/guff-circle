@@ -13,6 +13,23 @@
           <span>{{ userStats.followers }} Followers</span>
           <span>{{ userStats.following }} Following</span>
         </div>
+        <!-- Follow button: Only visible if not viewing your own profile -->
+        <div v-if="!isOwnProfile">
+          <button
+            v-if="!isFollowing"
+            @click="followUser"
+            class="follow-button"
+          >
+            Follow
+          </button>
+          <button
+            v-else
+            @click="unfollowUser"
+            class="follow-button following"
+          >
+            Following
+          </button>
+        </div>
       </div>
     </div>
     <!-- Single tab for posts only -->
@@ -30,9 +47,10 @@
 </template>
 
 <script>
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import db from "../firebase/init.js";
 import blankProfile from "@/assets/blank_profile.png";
+import { auth } from "../firebase/init.js"; // Ensure your Firebase auth is exported from here
 
 export default {
   name: "VisitProfile",
@@ -60,10 +78,20 @@ export default {
       return this.user && this.user.profilePicture
         ? this.user.profilePicture
         : blankProfile;
+    },
+    // Check if this is the current user's own profile.
+    isOwnProfile() {
+      return auth.currentUser && auth.currentUser.uid === this.userId;
+    },
+    // Check if the current user is already following the visited user.
+    isFollowing() {
+      if (this.user && this.user.followers && Array.isArray(this.user.followers)) {
+        return this.user.followers.includes(auth.currentUser.uid);
+      }
+      return false;
     }
   },
   created() {
-    // Use the userId prop to fetch the user data from Firestore.
     if (this.userId) {
       const userDocRef = doc(db, "users", this.userId);
       getDoc(userDocRef)
@@ -84,6 +112,78 @@ export default {
         });
     } else {
       console.error("No userId provided.");
+    }
+  },
+  methods: {
+    followUser() {
+      if (!auth.currentUser) {
+        console.error("User not logged in.");
+        return;
+      }
+      const currentUserId = auth.currentUser.uid;
+      if (currentUserId === this.userId) {
+        console.error("Cannot follow yourself.");
+        return;
+      }
+      const visitedUserRef = doc(db, "users", this.userId);
+      const currentUserRef = doc(db, "users", currentUserId);
+      // Update the visited user's followers array.
+      updateDoc(visitedUserRef, {
+        followers: arrayUnion(currentUserId)
+      })
+        .then(() => {
+          // Update the current user's following array.
+          return updateDoc(currentUserRef, {
+            following: arrayUnion(this.userId)
+          });
+        })
+        .then(() => {
+          // Update local state to reflect the new follower.
+          this.userStats.followers += 1;
+          if (this.user && Array.isArray(this.user.followers)) {
+            this.user.followers.push(currentUserId);
+          } else if (this.user) {
+            this.user.followers = [currentUserId];
+          }
+        })
+        .catch((error) => {
+          console.error("Error updating follow information:", error);
+        });
+    },
+    unfollowUser() {
+      if (!auth.currentUser) {
+        console.error("User not logged in.");
+        return;
+      }
+      const currentUserId = auth.currentUser.uid;
+      if (currentUserId === this.userId) {
+        console.error("Cannot unfollow yourself.");
+        return;
+      }
+      const visitedUserRef = doc(db, "users", this.userId);
+      const currentUserRef = doc(db, "users", currentUserId);
+      // Update the visited user's followers array: remove current user's ID.
+      updateDoc(visitedUserRef, {
+        followers: arrayRemove(currentUserId)
+      })
+        .then(() => {
+          // Update the current user's following array: remove visited user's ID.
+          return updateDoc(currentUserRef, {
+            following: arrayRemove(this.userId)
+          });
+        })
+        .then(() => {
+          // Update local state to reflect the removal.
+          this.userStats.followers -= 1;
+          if (this.user && Array.isArray(this.user.followers)) {
+            this.user.followers = this.user.followers.filter(
+              (id) => id !== currentUserId
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("Error updating unfollow information:", error);
+        });
     }
   }
 };
@@ -126,6 +226,24 @@ export default {
 }
 .user-stats span {
   margin-right: 10px;
+}
+.follow-button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: #734f96;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.follow-button:hover {
+  background-color: #5b3e7a;
+}
+.follow-button.following {
+  background-color: #ccc;
+  color: #666;
+  cursor: pointer;
 }
 .tab-navbar {
   display: flex;
