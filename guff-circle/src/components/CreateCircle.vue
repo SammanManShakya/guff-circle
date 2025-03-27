@@ -55,7 +55,14 @@
   
   <script>
   import db from "../firebase/init.js";
-  import { doc, getDoc, collection, getDocs, addDoc } from "firebase/firestore";
+  import {
+    doc,
+    getDoc,
+    collection,
+    getDocs,
+    addDoc,
+    updateDoc,
+  } from "firebase/firestore";
   import SearchItem from "./SearchItem.vue";
   
   export default {
@@ -80,8 +87,6 @@
         return;
       }
   
-      console.log("✅ currentUserId:", this.currentUserId);
-  
       const userDocRef = doc(db, "users", this.currentUserId);
       getDoc(userDocRef)
         .then((docSnap) => {
@@ -92,8 +97,6 @@
   
           const data = docSnap.data();
           const followingList = data.following || [];
-  
-          console.log("✅ Following user IDs:", followingList);
   
           return Promise.all(
             followingList.map((userId) => {
@@ -107,7 +110,6 @@
                     profilePicture: userData.profilePicture || "",
                   };
                 } else {
-                  console.warn("⚠️ Could not find followed user:", userId);
                   return null;
                 }
               });
@@ -116,9 +118,7 @@
         })
         .then((users) => {
           if (users) {
-            const filtered = users.filter((user) => user !== null);
-            console.log("✅ Final fetched users:", filtered);
-            this.followingUsers = filtered;
+            this.followingUsers = users.filter((user) => user !== null);
           }
         })
         .catch((error) => {
@@ -160,10 +160,31 @@
   
           await addDoc(circlesCollection, newCircle);
           console.log("✅ Circle created successfully:", newCircle);
+  
+          const updates = circleMembers.map(async (userId) => {
+            const userRef = doc(db, "users", userId);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+              const data = userSnap.data();
+              const currentCircles = Array.isArray(data.user_circles)
+                ? data.user_circles
+                : [];
+              const updatedCircles = currentCircles.includes(newCircleId)
+                ? currentCircles
+                : [...currentCircles, newCircleId];
+              await updateDoc(userRef, { user_circles: updatedCircles });
+              console.log(`✅ Updated user ${userId}'s circles.`);
+            }
+          });
+  
+          await Promise.all(updates);
+  
+          // Reset and redirect
           this.circleName = "";
           this.selectedUserIds = [];
+          this.$router.push("/profile");
         } catch (error) {
-          console.error("❌ Error creating circle:", error);
+          console.error("❌ Error creating circle or updating users:", error);
         }
       },
     },
