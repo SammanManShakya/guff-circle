@@ -33,7 +33,7 @@ const routes = [
     props: true
   },
   {
-    path: '/create-circle',
+    path: '/create-circle/:currentUserId',
     name: 'CreateCircle',
     component: () => import('../components/CreateCircle.vue'),
   },

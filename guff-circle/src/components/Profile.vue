@@ -55,9 +55,9 @@ export default {
       userStats: {
         posts: 0,
         followers: 0,
-        following: 0
+        following: 0,
       },
-      activeTab: "My Posts"
+      activeTab: "My Posts",
     };
   },
   computed: {
@@ -70,7 +70,7 @@ export default {
       return auth.currentUser && auth.currentUser.displayName
         ? auth.currentUser.displayName
         : "Anonymous";
-    }
+    },
   },
   created() {
     if (auth.currentUser) {
@@ -81,8 +81,12 @@ export default {
             const data = docSnap.data();
             this.userStats = {
               posts: Array.isArray(data.posts) ? data.posts.length : 0,
-              followers: Array.isArray(data.followers) ? data.followers.length : 0,
-              following: Array.isArray(data.following) ? data.following.length : 0
+              followers: Array.isArray(data.followers)
+                ? data.followers.length
+                : 0,
+              following: Array.isArray(data.following)
+                ? data.following.length
+                : 0,
             };
           }
         })
@@ -93,9 +97,18 @@ export default {
   },
   methods: {
     createCircle() {
-      this.$router.push("/create-circle");
-    }
-  }
+      if (auth.currentUser) {
+        this.$router.push({
+          name: "CreateCircle",
+          params: {
+            currentUserId: auth.currentUser.uid,
+          },
+        });
+      } else {
+        console.warn("User not authenticated.");
+      }
+    },
+  },
 };
 </script>
 

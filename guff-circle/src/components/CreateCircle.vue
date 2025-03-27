@@ -13,22 +13,32 @@
   
         <h3>Your Following</h3>
         <div v-if="followingUsers.length">
-          <SearchItem
+          <div
             v-for="user in followingUsers"
             :key="user.user_id"
-            :userId="user.user_id"
+            class="checkbox-item"
           >
-            <template #profile-pic>
-              <img
-                :src="getPictureSource(user.profilePicture)"
-                alt="Profile Picture"
-                class="profile-img"
-              />
-            </template>
-            <template #username>
-              {{ user.username }}
-            </template>
-          </SearchItem>
+            <input
+              type="checkbox"
+              :id="`checkbox-${user.user_id}`"
+              :value="user.user_id"
+              v-model="selectedUserIds"
+            />
+            <label :for="`checkbox-${user.user_id}`" class="search-wrapper">
+              <SearchItem :userId="user.user_id">
+                <template #profile-pic>
+                  <img
+                    :src="getPictureSource(user.profilePicture)"
+                    alt="Profile Picture"
+                    class="profile-img"
+                  />
+                </template>
+                <template #username>
+                  {{ user.username || 'Unnamed User' }}
+                </template>
+              </SearchItem>
+            </label>
+          </div>
         </div>
         <div v-else>
           <p>You are not following anyone.</p>
@@ -57,67 +67,84 @@
       return {
         circleName: "",
         followingUsers: [],
+        selectedUserIds: [],
         currentUserId: null,
       };
     },
     created() {
       this.currentUserId = this.$route.params.currentUserId;
+  
       if (!this.currentUserId) {
-        console.error("No currentUserId found in route params.");
+        console.error("❌ No currentUserId found in route params.");
+        this.$router.push("/profile");
         return;
       }
+  
+      console.log("✅ currentUserId:", this.currentUserId);
   
       const userDocRef = doc(db, "users", this.currentUserId);
       getDoc(userDocRef)
         .then((docSnap) => {
           if (!docSnap.exists()) {
-            console.error("User document not found.");
+            console.error("❌ User document not found.");
             return;
           }
   
           const data = docSnap.data();
           const followingList = data.following || [];
   
+          console.log("✅ Following user IDs:", followingList);
+  
           return Promise.all(
             followingList.map((userId) => {
               const followedUserRef = doc(db, "users", userId);
               return getDoc(followedUserRef).then((snap) => {
                 if (snap.exists()) {
-                  return { ...snap.data(), user_id: snap.id };
+                  const userData = snap.data();
+                  return {
+                    user_id: snap.id,
+                    username: userData.username || "Unnamed User",
+                    profilePicture: userData.profilePicture || "",
+                  };
+                } else {
+                  console.warn("⚠️ Could not find followed user:", userId);
+                  return null;
                 }
-                return null;
               });
             })
           );
         })
         .then((users) => {
           if (users) {
-            this.followingUsers = users.filter((user) => user !== null);
+            const filtered = users.filter((user) => user !== null);
+            console.log("✅ Final fetched users:", filtered);
+            this.followingUsers = filtered;
           }
         })
         .catch((error) => {
-          console.error("Error fetching following users:", error);
+          console.error("❌ Error fetching following users:", error);
         });
     },
     methods: {
       getPictureSource(profilePicture) {
-        if (profilePicture) {
-          if (
-            profilePicture.startsWith("http") ||
-            profilePicture.startsWith("data:")
-          ) {
-            return profilePicture;
-          } else {
-            return "data:image/png;base64," + profilePicture;
-          }
+        if (!profilePicture) {
+          return "https://via.placeholder.com/48";
         }
-        return "https://via.placeholder.com/48";
+        if (
+          profilePicture.startsWith("http") ||
+          profilePicture.startsWith("data:")
+        ) {
+          return profilePicture;
+        }
+        return "data:image/png;base64," + profilePicture;
       },
       async saveCircle() {
         if (!this.circleName.trim()) {
           alert("Please enter a circle name.");
           return;
         }
+  
+        const circleMembers = [this.currentUserId, ...this.selectedUserIds];
   
         try {
           const circlesCollection = collection(db, "circles");
@@ -127,15 +154,16 @@
           const newCircle = {
             circle_id: newCircleId,
             circle_name: this.circleName,
-            circle_members: [this.currentUserId],
+            circle_members: circleMembers,
             circle_posts: [],
           };
   
           await addDoc(circlesCollection, newCircle);
-          console.log("Circle created successfully:", newCircle);
+          console.log("✅ Circle created successfully:", newCircle);
           this.circleName = "";
+          this.selectedUserIds = [];
         } catch (error) {
-          console.error("Error creating circle:", error);
+          console.error("❌ Error creating circle:", error);
         }
       },
     },
@@ -186,6 +214,21 @@
     border-radius: 50%;
     object-fit: cover;
     margin-right: 10px;
+  }
+  
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .checkbox-item input[type="checkbox"] {
+    margin-right: 10px;
+  }
+  
+  .search-wrapper {
+    flex-grow: 1;
+    cursor: pointer;
   }
   
   .button-group {
