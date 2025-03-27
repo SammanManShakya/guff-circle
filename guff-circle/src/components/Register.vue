@@ -15,6 +15,7 @@ import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, sign
 import { auth } from "../firebase/init.js";
 import db from "../firebase/init.js";
 import { setDoc, doc } from "firebase/firestore";
+import blankProfile from "../assets/blank_profile.png";
 
 export default {
   name: "SignupForm",
@@ -23,7 +24,8 @@ export default {
     return {
       username: '',
       email: '',
-      password: ''
+      password: '',
+      profilePicture: '' // new field for profile picture
     }
   },
   methods: {
@@ -33,10 +35,26 @@ export default {
           // Update the user's profile with the chosen username.
           return updateProfile(userCredential.user, { displayName: this.username })
             .then(() => {
+              // Fetch the blank profile image and convert it to a base64 string.
+              return fetch(blankProfile)
+                .then(response => response.blob());
+            })
+            .then(blob => {
+              return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+            })
+            .then((base64data) => {
+              // Set the profilePicture to the base64 string.
+              this.profilePicture = base64data;
               // Create a document in the "users" collection with default stats.
               return setDoc(doc(db, "users", userCredential.user.uid), {
                 user_id: userCredential.user.uid,
                 username: this.username,
+                profilePicture: this.profilePicture,
                 followers: [],
                 following: [],
                 posts: [],
@@ -64,6 +82,7 @@ export default {
             {
               user_id: result.user.uid,
               username: result.user.displayName || "Anonymous",
+              profilePicture: result.user.photoURL, // store Google profile picture URL
               followers: [],
               following: [],
               posts: [],
