@@ -1,4 +1,3 @@
-// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
@@ -28,14 +27,19 @@ const routes = [
     component: () => import('../components/SearchResults.vue'),
   },
   {
-    path: '/',
-    redirect: '/login',
-  },
-  {
     path: '/visit-profile/:userId',
     name: 'VisitProfile',
     component: () => import('../components/VisitProfile.vue'),
     props: true
+  },
+  {
+    path: '/create-circle',
+    name: 'CreateCircle',
+    component: () => import('../components/CreateCircle.vue'),
+  },
+  {
+    path: '/',
+    redirect: '/login',
   }
 ]
 

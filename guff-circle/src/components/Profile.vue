@@ -15,6 +15,7 @@
         </button>
       </div>
     </div>
+
     <div class="tab-navbar">
       <button
         :class="{ active: activeTab === 'My Posts' }"
@@ -29,6 +30,7 @@
         My Circles
       </button>
     </div>
+
     <div class="tab-content">
       <div v-if="activeTab === 'My Posts'">
         <p>User posts go here.</p>
@@ -60,7 +62,6 @@ export default {
   },
   computed: {
     profileImage() {
-      // Use photoURL if available or fallback to blank profile picture.
       return auth.currentUser && auth.currentUser.photoURL
         ? auth.currentUser.photoURL
         : blankProfile;
@@ -72,7 +73,6 @@ export default {
     }
   },
   created() {
-    // Fetch the user info from Firestore and set the lengths of arrays for stats.
     if (auth.currentUser) {
       const userDocRef = doc(db, "users", auth.currentUser.uid);
       getDoc(userDocRef)
@@ -93,8 +93,7 @@ export default {
   },
   methods: {
     createCircle() {
-      // Placeholder functionality. We'll implement this soon.
-      console.log("Create गफ Circle button clicked.");
+      this.$router.push("/create-circle");
     }
   }
 };
