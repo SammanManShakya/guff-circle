@@ -31,6 +31,11 @@ const routes = [
     path: '/',
     redirect: '/login',
   },
+  {
+    path: '/visit-profile/:userId',
+    name: 'VisitProfile',
+    component:() => import('../components/VisitProfile.vue'),
+  }
 ]
 
 const router = createRouter({

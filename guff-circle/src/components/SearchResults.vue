@@ -8,7 +8,12 @@
           alt="Profile Picture"
           class="profile-img"
         />
-        <p>{{ user.username }}</p>
+        <router-link
+          class="username-link"
+          :to="{ name: 'VisitProfile', params: { userId: user.user_id } }"
+        >
+          {{ user.username }}
+        </router-link>
       </div>
     </div>
     <div v-else>
@@ -91,17 +96,31 @@ export default {
 .search-results {
   padding: 20px;
 }
+
 .user-item {
   display: flex;
   align-items: center;
   padding: 10px;
   border-bottom: 1px solid #ccc;
 }
+
 .profile-img {
   width: 48px;
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
   margin-right: 10px;
+}
+
+.username-link {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #734f96;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.username-link:hover {
+  text-decoration: underline;
 }
 </style>
