@@ -10,7 +10,9 @@
         />
         <router-link
           class="username-link"
-          :to="{ name: 'VisitProfile', params: { userId: user.user_id } }"
+          :to="user.user_id === currentUserId 
+                ? { name: 'Profile' } 
+                : { name: 'VisitProfile', params: { userId: user.user_id } }"
         >
           {{ user.username }}
         </router-link>
@@ -25,6 +27,7 @@
 <script>
 import { collection, getDocs } from "firebase/firestore";
 import db from "../firebase/init.js";
+import { auth } from "../firebase/init.js"; // Adjust this import based on your setup
 
 export default {
   name: "SearchResults",
@@ -32,6 +35,12 @@ export default {
     return {
       users: [],
       searchQuery: ""
+    }
+  },
+  computed: {
+    // Returns the current logged in user's UID (or null if not signed in)
+    currentUserId() {
+      return auth.currentUser ? auth.currentUser.uid : null;
     }
   },
   watch: {
