@@ -13,6 +13,7 @@ import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 
 import { auth } from "../firebase/init.js";
 import db from "../firebase/init.js";
 import { setDoc, doc, getDoc } from "firebase/firestore";
+import blankProfile from "../assets/blank_profile.png";
 
 export default {
   name: "LoginForm",
@@ -41,15 +42,15 @@ export default {
         .then((result) => {
           console.log("Google sign in result:", result.user);
           const userDocRef = doc(db, "users", result.user.uid);
-          // Check if the user already exists
           return getDoc(userDocRef).then((docSnap) => {
             if (!docSnap.exists()) {
-              // New user: create a document with default values including an empty chats array
+              // New user: create a document with default values including profilePicture
               return setDoc(
                 userDocRef,
                 {
                   user_id: result.user.uid,
                   username: result.user.displayName || "Anonymous",
+                  profilePicture: result.user.photoURL || blankProfile,
                   followers: [],
                   following: [],
                   posts: [],

@@ -1,3 +1,4 @@
+<!-- src/App.vue -->
 <template>
   <div class="app-container">
     <div v-if="!isLoggedIn">
@@ -5,21 +6,21 @@
         <LoginForm @loggedIn="handleLoggedIn" />
         <p>
           Don't have an account?
-          <a href="#" @click.prevent="toggleForm">Register</a>
+          <a @click.prevent="toggleForm">Register</a>
         </p>
       </div>
       <div v-else>
         <SignupForm @loggedIn="handleLoggedIn" />
         <p>
           Already have an account?
-          <a href="#" @click.prevent="toggleForm">Log in</a>
+          <a @click.prevent="toggleForm">Log in</a>
         </p>
       </div>
     </div>
     <div v-else>
       <Navbar />
       <div class="content">
-        <router-view></router-view>
+        <router-view />
       </div>
     </div>
   </div>
@@ -44,7 +45,7 @@ export default {
       isLoggedIn: false,
       showLogin: true,
       displayName: ''
-    }
+    };
   },
   methods: {
     toggleForm() {
@@ -63,7 +64,6 @@ export default {
           this.isLoggedIn = false;
           this.showLogin = true;
           this.displayName = '';
-          console.log("User signed out");
           this.$router.push("/login");
         })
         .catch((error) => {
@@ -77,22 +77,29 @@ export default {
       this.displayName = auth.currentUser.displayName;
     }
   }
-}
+};
 </script>
 
-<style scoped>
+<style>
+/* remove the fixed max-width so children can fill the screen */
 .app-container {
-  max-width: 800px;
-  margin: auto;
-  text-align: center;
-  padding-top: 70px;
+  width: 100%;
+  margin: 0;
+  max-width: none;
 }
+
+/* push everything below the fixed navbar and make it a flex container */
 .content {
-  padding: 20px;
+  padding-top: 60px;                  /* match your Navbar height */
+  display: flex;                      /* so Chat.vue flex children work */
+  height: calc(100vh - 60px);         /* fill remaining viewport height */
 }
+
+/* optional reset for your auth screens */
 a {
   cursor: pointer;
   color: blue;
   text-decoration: underline;
 }
+
 </style>
