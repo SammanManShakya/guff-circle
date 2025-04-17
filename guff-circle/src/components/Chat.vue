@@ -98,13 +98,11 @@
         try {
           const user = auth.currentUser;
           if (!user) return;
-          // Load current user profile picture
           const selfSnap = await getDoc(doc(db, "users", user.uid));
           if (selfSnap.exists()) {
             this.profiles[user.uid] = selfSnap.data().profilePicture;
           }
           const followers = selfSnap.exists() ? selfSnap.data().followers || [] : [];
-          // Load follower details
           const snaps = await Promise.all(
             followers.map((id) => getDoc(doc(db, "users", id)))
           );
@@ -128,7 +126,6 @@
         try {
           const user = auth.currentUser;
           if (!user) return;
-          // find existing chat or create new
           const userDoc = await getDoc(doc(db, "users", user.uid));
           const existing = userDoc.exists() ? userDoc.data().chats || [] : [];
           for (const cId of existing) {
@@ -142,7 +139,6 @@
               }
             }
           }
-          // create new chat
           const chatRef = await addDoc(collection(db, "chats"), {
             members: [user.uid, follower.id],
             messages: []
@@ -263,19 +259,17 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    padding: 1rem 2rem; /* vertical and horizontal padding */
+    padding: 1rem 0;
   }
-  /*. message row holds bubble and pic */
   .message-row {
     display: flex;
     align-items: flex-end;
-    gap: 0.5rem;
+    padding: 0 2rem;
     width: 100%;
     justify-content: flex-start;
   }
   .message-row.own {
     justify-content: flex-end;
-    flex-direction: row-reverse;
   }
   .msg-profile-pic {
     width: 30px;
@@ -288,18 +282,15 @@
     padding: 0.5rem 1rem;
     border-radius: 12px;
     background: #f1f1f1;
-    margin-left: 2rem;
-    margin-right: auto;
+    /* remove margin so pic is adjacent */
   }
   .message-bubble.own {
     background: #d1e7dd;
-    margin-left: auto;
-    margin-right: 2rem;
   }
   .message-input {
     display: flex;
     gap: 0.5rem;
-    padding: 0.5rem 0;
+    padding: 0.5rem 1rem;
   }
   .message-input input {
     flex: 1;
