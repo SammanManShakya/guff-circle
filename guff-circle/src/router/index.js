@@ -40,6 +40,11 @@ const routes = [
   {
     path: '/',
     redirect: '/login',
+  },
+  {
+    path: '/chat',
+    name: 'Chat',
+    component: () => import('../components/Chat.vue'),
   }
 ]
 

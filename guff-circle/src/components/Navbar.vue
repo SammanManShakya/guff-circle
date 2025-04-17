@@ -6,6 +6,7 @@
     <div class="navbar-center">
       <router-link class="nav-link" to="/feed">Feed</router-link>
       <router-link class="nav-link" to="/profile">Profile</router-link>
+      <router-link class="nav-link" to="/chat">Chat</router-link>
     </div>
     <div class="navbar-right">
       <!-- Using a form so that Enter triggers a submit -->
@@ -35,13 +36,10 @@ export default {
     },
     goToSearchResults() {
       console.log("Redirecting to SearchResults with query:", this.searchQuery);
-      // Redirect to the SearchResults route with the search query as a query parameter.
       this.$router.push({ name: 'SearchResults', query: { q: this.searchQuery } });
-      // Clear the search input after redirection.
       this.searchQuery = "";
     }
   },
-  // Vue 3 debug hooks for tracking reactive dependencies.
   renderTracked(e) {
     if (e && e.key === 'searchQuery') {
       console.log("renderTracked hook: searchQuery =", this.searchQuery);
@@ -75,7 +73,6 @@ export default {
 .navbar-center {
   flex: 1;
   display: flex;
-  flex-direction: row;
   justify-content: center;
   align-items: center;
 }
