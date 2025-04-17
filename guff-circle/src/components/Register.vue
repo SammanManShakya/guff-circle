@@ -1,4 +1,3 @@
-<!-- src/components/Register.vue -->
 <template>
   <form @submit.prevent="register">
     <h1>Create an Account</h1>
@@ -50,7 +49,7 @@ export default {
             .then((base64data) => {
               // Set the profilePicture to the base64 string.
               this.profilePicture = base64data;
-              // Create a document in the "users" collection with default stats.
+              // Create a document in the "users" collection with default stats and an empty chats array.
               return setDoc(doc(db, "users", userCredential.user.uid), {
                 user_id: userCredential.user.uid,
                 username: this.username,
@@ -58,7 +57,8 @@ export default {
                 followers: [],
                 following: [],
                 posts: [],
-                user_circles: []
+                user_circles: [],
+                chats: []  // initialize chats as empty array
               });
             })
             .then(() => {
@@ -76,17 +76,18 @@ export default {
       signInWithPopup(auth, provider)
         .then((result) => {
           console.log("Google sign in result:", result.user);
-          // Create or update the Firestore document for this Google user.
+          // Create or update the Firestore document for this Google user, including an empty chats array.
           return setDoc(
             doc(db, "users", result.user.uid),
             {
               user_id: result.user.uid,
               username: result.user.displayName || "Anonymous",
-              profilePicture: result.user.photoURL, // store Google profile picture URL
+              profilePicture: result.user.photoURL,
               followers: [],
               following: [],
               posts: [],
-              user_circles: []
+              user_circles: [],
+              chats: []  // initialize chats as empty array
             },
             { merge: true }
           );
@@ -96,7 +97,8 @@ export default {
           this.$router.push("/feed");
         })
         .catch((error) => {
-          console.error("Google sign in error:", error);
+          console.error("Google sign in " +
+                        "error:", error);
           alert("Error signing in with Google");
         });
     }

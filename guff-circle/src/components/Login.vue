@@ -1,38 +1,73 @@
-<!-- src/components/Login.vue -->
 <template>
-  <form @submit.prevent="login">
-    <h1>Login</h1>
+  <form @submit.prevent="register">
+    <h1>Create an Account</h1>
+    <input type="text" placeholder="Username" required v-model="username" />
     <input type="email" placeholder="Email" required v-model="email" />
-    <input type="password" placeholder="Password" required v-model="password" />
-    <button type="submit">Log in</button>
-    <button type="button" @click="signInWithGoogle">Log in with Google</button>
+    <input type="password" placeholder="Password (6+ characters)" required v-model="password" />
+    <button type="submit">Register</button>
+    <button type="button" @click="signInWithGoogle">Sign Up with Google</button>
   </form>
 </template>
 
 <script>
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebase/init.js";
 import db from "../firebase/init.js";
-import { setDoc, doc, getDoc } from "firebase/firestore";
+import { setDoc, doc } from "firebase/firestore";
+import blankProfile from "../assets/blank_profile.png";
 
 export default {
-  name: "LoginForm",
+  name: "SignupForm",
   emits: ['loggedIn'],
   data() {
     return {
+      username: '',
       email: '',
-      password: ''
+      password: '',
+      profilePicture: '' // new field for profile picture
     }
   },
   methods: {
-    login() {
-      signInWithEmailAndPassword(auth, this.email, this.password)
-        .then(() => {
-          console.log("Successfully logged in.");
-          this.$emit('loggedIn');
+    register() {
+      createUserWithEmailAndPassword(auth, this.email, this.password)
+        .then((userCredential) => {
+          // Update the user's profile with the chosen username.
+          return updateProfile(userCredential.user, { displayName: this.username })
+            .then(() => {
+              // Fetch the blank profile image and convert it to a base64 string.
+              return fetch(blankProfile)
+                .then(response => response.blob());
+            })
+            .then(blob => {
+              return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+            })
+            .then((base64data) => {
+              // Set the profilePicture to the base64 string.
+              this.profilePicture = base64data;
+              // Create a document in the "users" collection with default stats and an empty chats array.
+              return setDoc(doc(db, "users", userCredential.user.uid), {
+                user_id: userCredential.user.uid,
+                username: this.username,
+                profilePicture: this.profilePicture,
+                followers: [],
+                following: [],
+                posts: [],
+                user_circles: [],
+                chats: []  // initialize chats as empty array
+              });
+            })
+            .then(() => {
+              console.log("Registered, profile updated, and Firestore document created.");
+              this.$emit('loggedIn');
+            });
         })
         .catch((error) => {
-          console.error("Error during login:", error);
+          console.error("Error during registration:", error);
           alert("Username or Password incorrect");
         });
     },
@@ -41,33 +76,29 @@ export default {
       signInWithPopup(auth, provider)
         .then((result) => {
           console.log("Google sign in result:", result.user);
-          const userDocRef = doc(db, "users", result.user.uid);
-          // Check if the user already exists
-          return getDoc(userDocRef).then((docSnap) => {
-            if (!docSnap.exists()) {
-              // New user: create a document with default empty values
-              return setDoc(
-                userDocRef,
-                {
-                  user_id: result.user.uid,
-                  username: result.user.displayName || "Anonymous",
-                  followers: [],
-                  following: [],
-                  posts: [],
-                  user_circles: []
-                }
-              );
-            }
-            // Existing user: do not modify existing data
-            return Promise.resolve();
-          });
+          // Create or update the Firestore document for this Google user, including an empty chats array.
+          return setDoc(
+            doc(db, "users", result.user.uid),
+            {
+              user_id: result.user.uid,
+              username: result.user.displayName || "Anonymous",
+              profilePicture: result.user.photoURL,
+              followers: [],
+              following: [],
+              posts: [],
+              user_circles: [],
+              chats: []  // initialize chats as empty array
+            },
+            { merge: true }
+          );
         })
         .then(() => {
           this.$emit('loggedIn');
           this.$router.push("/feed");
         })
         .catch((error) => {
-          console.error("Google sign in error:", error);
+          console.error("Google sign in " +
+                        "error:", error);
           alert("Error signing in with Google");
         });
     }

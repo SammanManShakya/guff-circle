@@ -27,7 +27,7 @@
 <script>
 import { collection, getDocs } from "firebase/firestore";
 import db from "../firebase/init.js";
-import { auth } from "../firebase/init.js"; // Adjust this import based on your setup
+import { auth } from "../firebase/init.js"; 
 
 export default {
   name: "SearchResults",
@@ -38,13 +38,11 @@ export default {
     }
   },
   computed: {
-    // Returns the current logged in user's UID (or null if not signed in)
     currentUserId() {
       return auth.currentUser ? auth.currentUser.uid : null;
     }
   },
   watch: {
-    // Watch for changes in the route's query parameter.
     '$route.query.q': {
       handler(newQuery) {
         this.searchQuery = newQuery || "";
@@ -55,21 +53,17 @@ export default {
   },
   methods: {
     fetchUsers() {
-      // If there's no query, clear the users list.
       if (!this.searchQuery.trim()) {
         this.users = [];
         return;
       }
-      // Fetch all users from Firestore.
       const usersCollection = collection(db, "users");
       getDocs(usersCollection)
         .then((snapshot) => {
           const allUsers = [];
           snapshot.forEach((doc) => {
-            // Use document ID as the user's key (user_id).
             allUsers.push({ ...doc.data(), user_id: doc.id });
           });
-          // Filter users by checking if the username contains the search query (case‑insensitive).
           const queryLower = this.searchQuery.toLowerCase();
           this.users = allUsers.filter(
             user =>
@@ -81,12 +75,6 @@ export default {
           console.error("Error fetching users:", error);
         });
     },
-    /**
-     * Returns the proper image source for the profile picture.
-     * - If profilePicture starts with "http" or "data:", it is used as-is.
-     * - Otherwise, it's assumed to be a base64 string, so the PNG prefix is added.
-     * - If there's no profilePicture, a placeholder URL is returned.
-     */
     getPictureSource(profilePicture) {
       if (profilePicture) {
         if (profilePicture.startsWith("http") || profilePicture.startsWith("data:")) {

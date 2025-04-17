@@ -50,7 +50,7 @@
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import db from "../firebase/init.js";
 import blankProfile from "@/assets/blank_profile.png";
-import { auth } from "../firebase/init.js"; // Ensure your Firebase auth is exported from here
+import { auth } from "../firebase/init.js";
 
 export default {
   name: "VisitProfile",
@@ -138,7 +138,6 @@ export default {
           });
         })
         .then(() => {
-          // Update local state to reflect the new follower.
           this.userStats.followers += 1;
           if (this.user && Array.isArray(this.user.followers)) {
             this.user.followers.push(currentUserId);
@@ -162,18 +161,15 @@ export default {
       }
       const visitedUserRef = doc(db, "users", this.userId);
       const currentUserRef = doc(db, "users", currentUserId);
-      // Update the visited user's followers array: remove current user's ID.
       updateDoc(visitedUserRef, {
         followers: arrayRemove(currentUserId)
       })
         .then(() => {
-          // Update the current user's following array: remove visited user's ID.
           return updateDoc(currentUserRef, {
             following: arrayRemove(this.userId)
           });
         })
         .then(() => {
-          // Update local state to reflect the removal.
           this.userStats.followers -= 1;
           if (this.user && Array.isArray(this.user.followers)) {
             this.user.followers = this.user.followers.filter(
