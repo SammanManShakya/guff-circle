@@ -1,4 +1,3 @@
-<!-- src/App.vue -->
 <template>
   <div class="app-container">
     <div v-if="!isLoggedIn">
@@ -81,18 +80,27 @@ export default {
 </script>
 
 <style>
-/* remove the fixed max-width so children can fill the screen */
+/* override root #app to fill entire viewport */
+#app {
+  max-width: none !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ensure this container spans full width */
 .app-container {
   width: 100%;
   margin: 0;
-  max-width: none;
+  padding: 0;
 }
 
 /* push everything below the fixed navbar and make it a flex container */
 .content {
-  padding-top: 60px;                  /* match your Navbar height */
-  display: flex;                      /* so Chat.vue flex children work */
-  height: calc(100vh - 60px);         /* fill remaining viewport height */
+  padding-top: 60px;             /* match your Navbar height */
+  display: flex;                 /* so Chat.vue flex children work */
+  height: calc(100vh - 60px);    /* fill remaining viewport height */
+  width: 100%;
 }
 
 /* optional reset for your auth screens */
@@ -101,5 +109,4 @@ a {
   color: blue;
   text-decoration: underline;
 }
-
 </style>
