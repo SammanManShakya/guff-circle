@@ -7,7 +7,20 @@
     ></textarea>
 
     <label for="file-input" class="camera-button">
-      <!-- camera svg -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+        <path
+          fill="white"
+          d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1z"
+        />
+        <path
+          fill="white"
+          d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4z"
+        />
+        <path
+          fill="white"
+          d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5m0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"
+        />
+      </svg>
     </label>
     <input
       id="file-input"
@@ -18,8 +31,9 @@
       class="post-file-input"
     />
 
-    <div v-if="imgContent" class="image-preview">
-      <img :src="imgContent" alt="Preview" />
+    <div v-if="imgContent" class="image-preview-wrapper">
+      <button class="remove-btn" @click="removeImage">×</button>
+      <img :src="imgContent" alt="Preview" class="image-preview" />
     </div>
 
     <button
@@ -58,15 +72,24 @@ const textContent = ref("");
 const imgFile = ref(null);
 const imgContent = ref("");
 
-const canPost = computed(() => textContent.value.trim() !== "" || imgFile.value !== null);
+const canPost = computed(
+  () => textContent.value.trim() !== "" || imgFile.value !== null
+);
 
 function onImageChange(e) {
   const file = e.target.files[0];
   if (!file) return;
   imgFile.value = file;
   const reader = new FileReader();
-  reader.onload = () => { imgContent.value = reader.result; };
+  reader.onload = () => {
+    imgContent.value = reader.result;
+  };
   reader.readAsDataURL(file);
+}
+
+function removeImage() {
+  imgFile.value = null;
+  imgContent.value = "";
 }
 
 async function submitPost() {
@@ -90,8 +113,7 @@ async function submitPost() {
   }
 
   textContent.value = "";
-  imgFile.value = null;
-  imgContent.value = "";
+  removeImage();
 }
 </script>
 
@@ -102,12 +124,14 @@ async function submitPost() {
   flex-direction: column;
   gap: 0.75rem;
 }
+
 .post-textarea {
   width: 100%;
   height: 100px;
   padding: 0.5rem;
   resize: vertical;
 }
+
 .camera-button {
   width: 2rem;
   height: 2rem;
@@ -118,13 +142,45 @@ async function submitPost() {
   border-radius: 0.25rem;
   cursor: pointer;
 }
+
+.camera-button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
 .post-file-input {
   display: none;
 }
-.image-preview img {
-  max-width: 100%;
+
+.image-preview-wrapper {
+  position: relative;
+  width: 150px;
+  height: 150px;
+}
+
+.image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   border-radius: 0.25rem;
 }
+
+.remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
 .post-button {
   align-self: flex-end;
   padding: 0.5rem 1rem;
@@ -132,6 +188,7 @@ async function submitPost() {
   border-radius: 0.25rem;
   cursor: pointer;
 }
+
 .post-button:disabled {
   opacity: 0.5;
   cursor: default;

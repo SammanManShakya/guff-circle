@@ -23,6 +23,12 @@
           v-if="selectedCircle"
           :circleId="selectedCircle"
         />
+  
+        <PostList
+          v-if="selectedCircle"
+          :key="selectedCircle"
+          :circleId="selectedCircle"
+        />
       </div>
     </div>
   </template>
@@ -41,6 +47,9 @@
   
   const CreatePost = defineAsyncComponent(() =>
     import("@/components/CreatePost.vue")
+  );
+  const PostList = defineAsyncComponent(() =>
+    import("@/components/PostList.vue")
   );
   
   const loading = ref(true);
