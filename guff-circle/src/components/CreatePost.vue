@@ -5,7 +5,6 @@
       placeholder="What's on your mind?"
       class="post-textarea"
     ></textarea>
-
     <label for="file-input" class="camera-button">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
         <path
@@ -30,12 +29,10 @@
       ref="fileInput"
       class="post-file-input"
     />
-
     <div v-if="imgContent" class="image-preview-wrapper">
       <button class="remove-btn" @click="removeImage">×</button>
       <img :src="imgContent" alt="Preview" class="image-preview" />
     </div>
-
     <button
       :disabled="!canPost"
       @click="submitPost"
@@ -93,12 +90,18 @@ function removeImage() {
 }
 
 async function submitPost() {
-  const postRef = await addDoc(collection(db, "posts"), {
+  const userId = auth.currentUser.uid;
+  const postData = {
     circle_id: props.circleId,
-    text: textContent.value,
-    created_at: serverTimestamp(),
-    author_id: auth.currentUser.uid
-  });
+    comments: [],
+    img_content: imgContent.value || "",
+    likes: [],
+    text_content: textContent.value,
+    time_data: serverTimestamp(),
+    user_id: userId
+  };
+
+  const postRef = await addDoc(collection(db, "posts"), postData);
 
   const circlesQuery = query(
     collection(db, "circles"),
@@ -112,6 +115,11 @@ async function submitPost() {
     );
   }
 
+  await updateDoc(
+    doc(db, "users", userId),
+    { posts: arrayUnion(postRef.id) }
+  );
+
   textContent.value = "";
   removeImage();
 }
@@ -124,14 +132,12 @@ async function submitPost() {
   flex-direction: column;
   gap: 0.75rem;
 }
-
 .post-textarea {
   width: 100%;
   height: 100px;
   padding: 0.5rem;
   resize: vertical;
 }
-
 .camera-button {
   width: 2rem;
   height: 2rem;
@@ -142,29 +148,24 @@ async function submitPost() {
   border-radius: 0.25rem;
   cursor: pointer;
 }
-
 .camera-button svg {
   width: 1rem;
   height: 1rem;
 }
-
 .post-file-input {
   display: none;
 }
-
 .image-preview-wrapper {
   position: relative;
   width: 150px;
   height: 150px;
 }
-
 .image-preview {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 0.25rem;
 }
-
 .remove-btn {
   position: absolute;
   top: 4px;
@@ -180,7 +181,6 @@ async function submitPost() {
   justify-content: center;
   cursor: pointer;
 }
-
 .post-button {
   align-self: flex-end;
   padding: 0.5rem 1rem;
@@ -188,7 +188,6 @@ async function submitPost() {
   border-radius: 0.25rem;
   cursor: pointer;
 }
-
 .post-button:disabled {
   opacity: 0.5;
   cursor: default;
