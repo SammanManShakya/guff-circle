@@ -42,17 +42,61 @@
               class="message-bubble"
               :class="{ own: msg.sender === currentUid }"
             >
-              {{ msg.content }}
+              <img
+                v-if="isImage(msg.content)"
+                :src="msg.content"
+                alt="Sent image"
+                class="chat-image"
+              />
+              <span v-else>{{ msg.content }}</span>
             </div>
           </div>
         </div>
 
+        <!-- Image preview above the input -->
+        <div v-if="pendingImage" class="pending-image">
+          <button class="remove-image" @click="removeImage">×</button>
+          <img :src="pendingImage" class="pending-img-preview" />
+        </div>
+
         <!-- Message input area -->
         <div class="message-input">
+          <label for="file-input" class="camera-button" title="Attach image">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20" height="20"
+              fill="currentColor"
+              class="bi bi-camera"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M9.5 2h-3l-.447 1.342A.5.5 0 0 1 6 
+                   3.5H4a.5.5 0 0 0-.492.41L3 5H1.5A1.5 
+                   1.5 0 0 0 0 6.5v7A1.5 1.5 0 0 0 1.5 15h13
+                   a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 
+                   0 0 14.5 5H13l-.508-1.59A.5.5 0 0 
+                   0 12 3.5z"
+              />
+              <path
+                d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 
+                   6zm0-1a2 2 0 1 0 0-4 2 2 0 0 0 
+                   0 4z"
+              />
+            </svg>
+          </label>
+          <input
+            id="file-input"
+            type="file"
+            accept="image/*"
+            @change="onFileSelected"
+            class="file-input"
+          />
+
           <input
             type="text"
             v-model="newMessage"
             placeholder="Type a message..."
+            :disabled="!!pendingImage"
             @keyup.enter="sendMessage"
           />
           <button @click="sendMessage">Send</button>
@@ -83,17 +127,21 @@ export default {
       profiles: {},
       currentChatId: null,
       newMessage: "",
+      pendingImage: null,
       messagesList: [],
       unsubscribeChat: null
     };
   },
   computed: {
     currentUid() {
-      return auth.currentUser ? auth.currentUser.uid : null;
+      return auth.currentUser?.uid || null;
     }
   },
   async mounted() {
     await this.loadFollowers();
+  },
+  beforeUnmount() {
+    if (this.unsubscribeChat) this.unsubscribeChat();
   },
   watch: {
     currentChatId(newId) {
@@ -110,108 +158,123 @@ export default {
   },
   methods: {
     async loadFollowers() {
-      try {
-        const user = auth.currentUser;
-        if (!user) return;
-        const selfSnap = await getDoc(doc(db, "users", user.uid));
-        if (!selfSnap.exists()) return;
+      const user = auth.currentUser;
+      if (!user) return;
 
-        this.profiles[user.uid] = selfSnap.data().profilePicture;
-        const followers = selfSnap.data().followers || [];
-        const snaps = await Promise.all(
-          followers.map((id) => getDoc(doc(db, "users", id)))
-        );
-        this.followersList = snaps
-          .filter((snap) => snap.exists())
-          .map((snap) => {
-            const data = snap.data();
-            this.profiles[snap.id] = data.profilePicture;
-            return {
-              id: snap.id,
-              username: data.username,
-              profilePicture: data.profilePicture
-            };
-          });
-      } catch (err) {
-        console.error("Error loading followers:", err);
-      }
+      const selfSnap = await getDoc(doc(db, "users", user.uid));
+      if (!selfSnap.exists()) return;
+
+      this.profiles[user.uid] = selfSnap.data().profilePicture;
+      const followers = selfSnap.data().followers || [];
+      const snaps = await Promise.all(
+        followers.map((id) => getDoc(doc(db, "users", id)))
+      );
+
+      this.followersList = snaps
+        .filter((snap) => snap.exists())
+        .map((snap) => {
+          this.profiles[snap.id] = snap.data().profilePicture;
+          return {
+            id: snap.id,
+            username: snap.data().username,
+            profilePicture: snap.data().profilePicture
+          };
+        });
     },
 
     async startChat(follower) {
-      try {
-        const user = auth.currentUser;
-        if (!user) return;
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        const existingChats = userDoc.exists() ? userDoc.data().chats || [] : [];
-        for (const chatId of existingChats) {
-          const snap = await getDoc(doc(db, "chats", chatId));
-          if (snap.exists()) {
-            const members = snap.data().members || [];
-            if (members.includes(user.uid) && members.includes(follower.id)) {
-              this.currentChatId = chatId;
-              return;
-            }
-          }
-        }
-        const chatRef = await addDoc(collection(db, "chats"), {
-          members: [user.uid, follower.id],
-          messages: []
-        });
-        this.currentChatId = chatRef.id;
-        await Promise.all(
-          [user.uid, follower.id].map((uid) =>
-            updateDoc(doc(db, "users", uid), {
-              chats: arrayUnion(chatRef.id)
-            })
-          )
-        );
-      } catch (err) {
-        console.error("Error starting chat:", err);
-      }
-    },
+      const user = auth.currentUser;
+      if (!user) return;
 
-    subscribeToMessages(chatId) {
-      const chatDoc = doc(db, "chats", chatId);
-      this.unsubscribeChat = onSnapshot(
-        chatDoc,
-        (snap) => {
-          if (!snap.exists()) {
-            this.messagesList = [];
+      const meSnap = await getDoc(doc(db, "users", user.uid));
+      const existing = meSnap.exists() ? meSnap.data().chats || [] : [];
+
+      for (const cid of existing) {
+        const snap = await getDoc(doc(db, "chats", cid));
+        if (snap.exists()) {
+          const mem = snap.data().members || [];
+          if (mem.includes(user.uid) && mem.includes(follower.id)) {
+            this.currentChatId = cid;
             return;
           }
-          const msgs = snap.data().messages || [];
-          this.messagesList = msgs.map((j) => {
-            const [sender, content, timestamp] = JSON.parse(j);
-            return { sender, content, timestamp };
-          });
-        },
-        (err) => {
-          console.error("Real-time update error:", err);
         }
+      }
+
+      const chatRef = await addDoc(collection(db, "chats"), {
+        members: [user.uid, follower.id],
+        messages: []
+      });
+      this.currentChatId = chatRef.id;
+
+      await Promise.all(
+        [user.uid, follower.id].map((uid) =>
+          updateDoc(doc(db, "users", uid), {
+            chats: arrayUnion(chatRef.id)
+          })
+        )
       );
     },
 
-    async sendMessage() {
-      if (!this.currentChatId || !this.newMessage.trim()) return;
-      try {
-        const uid = auth.currentUser.uid;
-        const ts = new Date().toISOString();
-        const payload = JSON.stringify([uid, this.newMessage.trim(), ts]);
-        await updateDoc(doc(db, "chats", this.currentChatId), {
-          messages: arrayUnion(payload)
+    subscribeToMessages(chatId) {
+      const chatRef = doc(db, "chats", chatId);
+      this.unsubscribeChat = onSnapshot(chatRef, (snap) => {
+        if (!snap.exists()) {
+          this.messagesList = [];
+          return;
+        }
+        const msgs = snap.data().messages || [];
+        this.messagesList = msgs.map((j) => {
+          const [sender, content, timestamp] = JSON.parse(j);
+          return { sender, content, timestamp };
         });
-        this.newMessage = "";
-      } catch (err) {
-        console.error("Error sending message:", err);
+      });
+    },
+
+    onFileSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.pendingImage = reader.result;
+      };
+      reader.readAsDataURL(file);
+      e.target.value = null;
+    },
+
+    removeImage() {
+      this.pendingImage = null;
+    },
+
+    async sendMessage() {
+      if (!this.currentChatId) return;
+      const uid = auth.currentUser.uid;
+      const ts = new Date().toISOString();
+
+      let content = null;
+      if (this.pendingImage) {
+        content = this.pendingImage;
+      } else if (this.newMessage.trim()) {
+        content = this.newMessage.trim();
+      } else {
+        return;
       }
+
+      const payload = JSON.stringify([uid, content, ts]);
+      await updateDoc(doc(db, "chats", this.currentChatId), {
+        messages: arrayUnion(payload)
+      });
+
+      this.newMessage = "";
+      this.pendingImage = null;
+    },
+
+    isImage(content) {
+      return typeof content === "string" && content.startsWith("data:");
     },
 
     formatTimestamp(ts) {
       return new Date(ts).toLocaleString();
     }
-  },
-  beforeUnmount() {
-    if (this.unsubscribeChat) this.unsubscribeChat();
   }
 };
 </script>
@@ -224,10 +287,8 @@ export default {
 }
 .chat-sidebar {
   flex: 0 0 250px;
-  width: 250px;
-  border-right: 1px solid #ccc;
   padding: 1rem;
-  box-sizing: border-box;
+  border-right: 1px solid #ccc;
   overflow-y: auto;
 }
 .followers-list {
@@ -250,7 +311,6 @@ export default {
   margin-right: 0.75rem;
 }
 .username {
-  font-size: 1rem;
   font-weight: bold;
   color: #333;
 }
@@ -294,25 +354,60 @@ export default {
   margin-right: 0.5rem;
 }
 .message-row.own .msg-profile-pic {
-  margin-right: 0;
   margin-left: 0.5rem;
+  margin-right: 0;
 }
+
 .message-bubble {
   max-width: 70%;
   padding: 0.5rem 1rem;
   border-radius: 12px;
   background: #f1f1f1;
+  overflow: hidden;
 }
 .message-bubble.own {
   background: #d1e7dd;
   margin-left: auto;
 }
+
+/* image inside bubble */
+.chat-image {
+  max-width: 100%;
+  max-height: 200px;
+  display: block;
+  border-radius: 8px;
+}
+
+/* pending-image preview */
+.pending-image {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 2rem;
+}
+.pending-img-preview {
+  max-width: 60px;
+  max-height: 60px;
+  border-radius: 4px;
+}
+.remove-image {
+  margin-right: 0.5rem;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 1.2rem;
+  height: 1.2rem;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .message-input {
   display: flex;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
 }
-.message-input input {
+.message-input input[type="text"] {
   flex: 1;
   padding: 0.5rem;
   border: 1px solid #ccc;
@@ -328,5 +423,18 @@ export default {
 }
 .message-input button:hover {
   background-color: #5a3b6d;
+}
+
+/* camera button */
+.camera-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.file-input {
+  display: none;
 }
 </style>
