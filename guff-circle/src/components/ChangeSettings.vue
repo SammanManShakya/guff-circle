@@ -18,11 +18,26 @@
       <section class="section">
         <label>Profile Picture</label>
         <label for="file-input" class="camera-button">
-          <!-- same camera icon -->
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-            <path fill="white" d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1z"/>
-            <path fill="white" d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4z"/>
-            <path fill="white" d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5m0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/>
+          <!-- outline camera icon -->
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16" height="16"
+            fill="currentColor"
+            class="bi bi-camera"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M9.5 2h-3l-.447 1.342A.5.5 0 0 1 6 3.5H4
+                 a.5.5 0 0 0-.492.41L3 5H1.5A1.5 1.5 0 0 0 0 
+                 6.5v7A1.5 1.5 0 0 0 1.5 15h13
+                 a1.5 1.5 0 0 0 1.5-1.5v-7
+                 A1.5 1.5 0 0 0 14.5 5H13
+                 l-.508-1.59A.5.5 0 0 0 12 3.5z"
+            />
+            <path
+              d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0-1
+                 a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"
+            />
           </svg>
         </label>
         <input
@@ -30,10 +45,9 @@
           type="file"
           accept="image/*"
           @change="onFileChange"
-          ref="fileInput"
           class="file-input"
         />
-        <div v-if="imgContent" class="image-preview-wrapper">
+        <div v-if="imgChanged" class="image-preview-wrapper">
           <button class="remove-btn" @click="removeImage">×</button>
           <img :src="imgContent" alt="Preview" class="image-preview" />
         </div>
@@ -41,6 +55,18 @@
   
       <!-- Change Password (hidden for Google users) -->
       <section class="section" v-if="!isGoogleUser">
+        <label for="current-password">Current Password</label>
+        <input
+          id="current-password"
+          v-model="currentPassword"
+          type="password"
+          placeholder="Current password"
+          class="text-input"
+        />
+        <p v-if="wrongCurrent" class="error-text">
+          Current password incorrect
+        </p>
+  
         <label for="new-password">New Password</label>
         <input
           id="new-password"
@@ -49,6 +75,7 @@
           placeholder="New password"
           class="text-input"
         />
+  
         <label for="confirm-password">Confirm New Password</label>
         <input
           id="confirm-password"
@@ -81,16 +108,25 @@
   import { auth } from "@/firebase/init.js";
   import db from "@/firebase/init.js";
   import { doc, getDoc, updateDoc } from "firebase/firestore";
-  import { updatePassword, updateProfile } from "firebase/auth";
+  import {
+    updatePassword,
+    updateProfile,
+    reauthenticateWithCredential,
+    EmailAuthProvider
+  } from "firebase/auth";
   
   const router = useRouter();
   
+  // form state
   const username        = ref("");
-  const originalUsername = ref("");
+  const originalUsername= ref("");
   const imgContent      = ref("");
   const imgChanged      = ref(false);
+  
+  const currentPassword = ref("");
   const newPassword     = ref("");
   const confirmPassword = ref("");
+  const wrongCurrent    = ref(false);
   
   // detect Google sign-in
   const isGoogleUser = computed(() =>
@@ -109,7 +145,6 @@
   
     username.value         = data.username || "";
     originalUsername.value = username.value;
-    imgContent.value       = data.profilePicture || "";
   });
   
   // file → base64
@@ -127,7 +162,7 @@
   // remove preview
   function removeImage() {
     imgContent.value = "";
-    imgChanged.value = true;
+    imgChanged.value = false;
   }
   
   // guards
@@ -137,6 +172,7 @@
   );
   const canChangePassword = computed(() =>
     !isGoogleUser.value &&
+    currentPassword.value.length > 0 &&
     newPassword.value.length >= 6 &&
     newPassword.value === confirmPassword.value
   );
@@ -146,28 +182,41 @@
     canChangePassword.value
   );
   
-  // Firestore updates
+  // update only the username field in Firestore (won’t wipe others)
   async function applyUsername() {
     const user = auth.currentUser;
-    // 1) Firestore:
     const uRef = doc(db, "users", user.uid);
     await updateDoc(uRef, { username: username.value.trim() });
-    originalUsername.value = username.value.trim();
-    // 2) Auth profile for displayName:
+    // also update Auth displayName
     await updateProfile(user, { displayName: username.value.trim() });
+    originalUsername.value = username.value.trim();
   }
   
   async function applyProfilePic() {
     const user = auth.currentUser;
     const uRef = doc(db, "users", user.uid);
-    await updateDoc(uRef, { profilePicture: imgContent.value || "" });
+    await updateDoc(uRef, { profilePicture: imgContent.value });
     imgChanged.value = false;
   }
   
   async function applyPassword() {
     const user = auth.currentUser;
+    // reauthenticate
+    const cred = EmailAuthProvider.credential(
+      user.email,
+      currentPassword.value
+    );
+    try {
+      wrongCurrent.value = false;
+      await reauthenticateWithCredential(user, cred);
+    } catch {
+      wrongCurrent.value = true;
+      return;  // abort
+    }
+    // update
     await updatePassword(user, newPassword.value);
-    newPassword.value = "";
+    currentPassword.value = "";
+    newPassword.value     = "";
     confirmPassword.value = "";
   }
   
@@ -175,7 +224,10 @@
   async function saveChanges() {
     if (usernameChanged.value)   await applyUsername();
     if (imgChanged.value)        await applyProfilePic();
-    if (canChangePassword.value) await applyPassword();
+    if (canChangePassword.value) {
+      await applyPassword();
+      if (wrongCurrent.value) return;
+    }
     router.push({ name: "Profile" });
   }
   
@@ -198,6 +250,7 @@
   }
   h2 {
     text-align: center;
+    margin: 0;
   }
   .section {
     display: flex;
@@ -209,9 +262,15 @@
     border: 1px solid #ccc;
     border-radius: 4px;
   }
+  .error-text {
+    color: red;
+    font-size: 0.9rem;
+    margin: 0;
+  }
   .camera-button {
     width: 2rem;
     height: 2rem;
+    color: white;
     background: #734f96;
     display: inline-flex;
     align-items: center;
@@ -220,26 +279,36 @@
     cursor: pointer;
   }
   .camera-button svg {
-    width: 1rem; height: 1rem;
+    color: white;
   }
   .file-input {
     display: none;
   }
   .image-preview-wrapper {
     position: relative;
-    width: 150px; height: 150px;
+    width: 150px;
+    height: 150px;
   }
   .image-preview {
-    width: 100%; height: 100%;
-    object-fit: cover; border-radius: 0.25rem;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0.25rem;
   }
   .remove-btn {
-    position: absolute; top: 4px; right: 4px;
-    background: rgba(0,0,0,0.5); color: white;
-    border: none; border-radius: 50%;
-    width: 1.5rem; height: 1.5rem;
-    cursor: pointer; display: flex;
-    align-items: center; justify-content: center;
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
   }
   .buttons {
     display: flex;

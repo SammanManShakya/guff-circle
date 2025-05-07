@@ -1,15 +1,33 @@
 <template>
-  <form @submit.prevent="login">
+  <form @submit.prevent="login" class="login-form">
     <h1>Login</h1>
-    <input type="email" placeholder="Email" required v-model="email" />
-    <input type="password" placeholder="Password" required v-model="password" />
-    <button type="submit">Log in</button>
-    <button type="button" @click="signInWithGoogle">Log in with Google</button>
+    <input
+      type="email"
+      placeholder="Email"
+      required
+      v-model="email"
+      class="text-input"
+    />
+    <input
+      type="password"
+      placeholder="Password"
+      required
+      v-model="password"
+      class="text-input"
+    />
+    <button type="submit" class="btn primary">Log in</button>
+    <button type="button" @click="signInWithGoogle" class="btn google">
+      Log in with Google
+    </button>
   </form>
 </template>
 
 <script>
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup
+} from "firebase/auth";
 import { auth } from "../firebase/init.js";
 import db from "../firebase/init.js";
 import { setDoc, doc, getDoc } from "firebase/firestore";
@@ -17,54 +35,47 @@ import blankProfile from "../assets/blank_profile.png";
 
 export default {
   name: "LoginForm",
-  emits: ['loggedIn'],
+  emits: ["loggedIn"],
   data() {
     return {
-      email: '',
-      password: ''
-    }
+      email: "",
+      password: ""
+    };
   },
   methods: {
     login() {
       signInWithEmailAndPassword(auth, this.email, this.password)
         .then(() => {
-          console.log("Successfully logged in.");
-          this.$emit('loggedIn');
+          this.$emit("loggedIn");
         })
         .catch((error) => {
           console.error("Error during login:", error);
-          alert("Username or Password incorrect");
+          alert("Username or password incorrect");
         });
     },
     signInWithGoogle() {
       const provider = new GoogleAuthProvider();
       signInWithPopup(auth, provider)
         .then((result) => {
-          console.log("Google sign in result:", result.user);
-          const userDocRef = doc(db, "users", result.user.uid);
+          const user = result.user;
+          const userDocRef = doc(db, "users", user.uid);
           return getDoc(userDocRef).then((docSnap) => {
             if (!docSnap.exists()) {
-              // New user: create a document with default values including profilePicture
-              return setDoc(
-                userDocRef,
-                {
-                  user_id: result.user.uid,
-                  username: result.user.displayName || "Anonymous",
-                  profilePicture: result.user.photoURL || blankProfile,
-                  followers: [],
-                  following: [],
-                  posts: [],
-                  user_circles: [],
-                  chats: []  // initialize chats as empty array
-                }
-              );
+              return setDoc(userDocRef, {
+                user_id: user.uid,
+                username: user.displayName || "Anonymous",
+                profilePicture: user.photoURL || blankProfile,
+                followers: [],
+                following: [],
+                posts: [],
+                user_circles: [],
+                chats: []
+              });
             }
-            // Existing user: do not modify existing data
-            return Promise.resolve();
           });
         })
         .then(() => {
-          this.$emit('loggedIn');
+          this.$emit("loggedIn");
           this.$router.push("/feed");
         })
         .catch((error) => {
@@ -73,23 +84,64 @@ export default {
         });
     }
   }
-}
+};
 </script>
 
 <style scoped>
-form {
+.login-form {
+  max-width: 360px;
+  margin: 4rem auto;
+  padding: 2rem;
   border: 1px solid #ccc;
-  padding: 20px;
-  margin-bottom: 1rem;
+  border-radius: 8px;
+  box-sizing: border-box;
+  background: #fff;
 }
-input {
+
+.login-form h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.text-input {
   display: block;
-  width: 90%;
-  margin: 10px auto;
-  padding: 8px;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
 }
-button {
-  padding: 8px 16px;
-  margin: 5px;
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.btn.primary {
+  background-color: #734f96;
+  color: #fff;
+  border: none;
+}
+
+.btn.primary:hover {
+  background-color: #5b3e7a;
+}
+
+.btn.google {
+  background-color: #fff;
+  color: #444;
+  border: 1px solid #ccc;
+}
+
+.btn.google:hover {
+  background-color: #f5f5f5;
 }
 </style>

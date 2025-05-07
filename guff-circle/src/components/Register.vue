@@ -1,16 +1,45 @@
 <template>
-  <form @submit.prevent="register">
+  <form @submit.prevent="register" class="signup-form">
     <h1>Create an Account</h1>
-    <input type="text" placeholder="Username" required v-model="username" />
-    <input type="email" placeholder="Email" required v-model="email" />
-    <input type="password" placeholder="Password (6+ characters)" required v-model="password" />
-    <button type="submit">Register</button>
-    <button type="button" @click="signInWithGoogle">Sign Up with Google</button>
+
+    <input
+      type="text"
+      placeholder="Username"
+      required
+      v-model="username"
+      class="text-input"
+    />
+
+    <input
+      type="email"
+      placeholder="Email"
+      required
+      v-model="email"
+      class="text-input"
+    />
+
+    <input
+      type="password"
+      placeholder="Password (6+ characters)"
+      required
+      v-model="password"
+      class="text-input"
+    />
+
+    <button type="submit" class="btn primary">Register</button>
+    <button type="button" @click="signInWithGoogle" class="btn google">
+      Sign Up with Google
+    </button>
   </form>
 </template>
 
 <script>
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup
+} from "firebase/auth";
 import { auth } from "../firebase/init.js";
 import db from "../firebase/init.js";
 import { setDoc, doc } from "firebase/firestore";
@@ -18,108 +47,144 @@ import blankProfile from "../assets/blank_profile.png";
 
 export default {
   name: "SignupForm",
-  emits: ['loggedIn'],
+  emits: ["loggedIn"],
   data() {
     return {
-      username: '',
-      email: '',
-      password: '',
-      profilePicture: '' // new field for profile picture
-    }
+      username: "",
+      email: "",
+      password: "",
+      profilePicture: ""
+    };
   },
   methods: {
     register() {
       createUserWithEmailAndPassword(auth, this.email, this.password)
         .then((userCredential) => {
-          // Update the user's profile with the chosen username.
-          return updateProfile(userCredential.user, { displayName: this.username })
-            .then(() => {
-              // Fetch the blank profile image and convert it to a base64 string.
-              return fetch(blankProfile)
-                .then(response => response.blob());
-            })
-            .then(blob => {
-              return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-              });
-            })
-            .then((base64data) => {
-              // Set the profilePicture to the base64 string.
-              this.profilePicture = base64data;
-              // Create a document in the "users" collection with default stats and an empty chats array.
-              return setDoc(doc(db, "users", userCredential.user.uid), {
-                user_id: userCredential.user.uid,
-                username: this.username,
-                profilePicture: this.profilePicture,
-                followers: [],
-                following: [],
-                posts: [],
-                user_circles: [],
-                chats: []  // initialize chats as empty array
-              });
-            })
-            .then(() => {
-              console.log("Registered, profile updated, and Firestore document created.");
-              this.$emit('loggedIn');
+          const user = userCredential.user;
+          // Update displayName
+          return updateProfile(user, { displayName: this.username }).then(
+            () => {
+              // convert blankProfile to base64
+              return fetch(blankProfile).then((res) => res.blob());
+            }
+          ).then((blob) => {
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
             });
+          }).then((base64data) => {
+            this.profilePicture = base64data;
+            // write Firestore user doc
+            return setDoc(doc(db, "users", user.uid), {
+              user_id: user.uid,
+              username: this.username,
+              profilePicture: this.profilePicture,
+              followers: [],
+              following: [],
+              posts: [],
+              user_circles: [],
+              chats: []
+            });
+          });
+        })
+        .then(() => {
+          this.$emit("loggedIn");
         })
         .catch((error) => {
           console.error("Error during registration:", error);
-          alert("Username or Password incorrect");
+          alert("Registration failed");
         });
     },
     signInWithGoogle() {
       const provider = new GoogleAuthProvider();
       signInWithPopup(auth, provider)
         .then((result) => {
-          console.log("Google sign in result:", result.user);
-          // Create or update the Firestore document for this Google user, including an empty chats array.
+          const user = result.user;
           return setDoc(
-            doc(db, "users", result.user.uid),
+            doc(db, "users", user.uid),
             {
-              user_id: result.user.uid,
-              username: result.user.displayName || "Anonymous",
-              profilePicture: result.user.photoURL,
+              user_id: user.uid,
+              username: user.displayName || "Anonymous",
+              profilePicture: user.photoURL || blankProfile,
               followers: [],
               following: [],
               posts: [],
               user_circles: [],
-              chats: []  // initialize chats as empty array
+              chats: []
             },
             { merge: true }
           );
         })
         .then(() => {
-          this.$emit('loggedIn');
+          this.$emit("loggedIn");
           this.$router.push("/feed");
         })
         .catch((error) => {
-          console.error("Google sign in " +
-                        "error:", error);
-          alert("Error signing in with Google");
+          console.error("Google sign up error:", error);
+          alert("Error signing up with Google");
         });
     }
   }
-}
+};
 </script>
 
 <style scoped>
-form {
+.signup-form {
+  max-width: 360px;
+  margin: 4rem auto;
+  padding: 2rem;
   border: 1px solid #ccc;
-  padding: 20px;
-  margin-bottom: 1rem;
+  border-radius: 8px;
+  box-sizing: border-box;
+  background: #fff;
 }
-input {
+
+.signup-form h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.text-input {
   display: block;
-  width: 90%;
-  margin: 10px auto;
-  padding: 8px;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
 }
-button {
-  padding: 8px 16px;
-  margin: 5px;
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.btn.primary {
+  background-color: #734f96;
+  color: #fff;
+  border: none;
+}
+
+.btn.primary:hover {
+  background-color: #5b3e7a;
+}
+
+.btn.google {
+  background-color: #fff;
+  color: #444;
+  border: 1px solid #ccc;
+}
+
+.btn.google:hover {
+  background-color: #f5f5f5;
 }
 </style>
