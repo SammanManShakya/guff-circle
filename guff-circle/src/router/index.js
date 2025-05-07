@@ -38,13 +38,18 @@ const routes = [
     component: () => import('../components/CreateCircle.vue'),
   },
   {
-    path: '/',
-    redirect: '/login',
+    path: '/settings',
+    name: 'ChangeSettings',
+    component: () => import('../components/ChangeSettings.vue'),
   },
   {
     path: '/chat',
     name: 'Chat',
     component: () => import('../components/Chat.vue'),
+  },
+  {
+    path: '/',
+    redirect: '/login',
   }
 ]
 
