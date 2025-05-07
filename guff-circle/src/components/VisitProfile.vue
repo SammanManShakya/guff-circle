@@ -1,9 +1,11 @@
 <template>
+  <!-- root wrapper still has class="profile-container" -->
   <div class="profile-container">
     <!-- Display the user ID for error checking -->
     <div class="user-id-display">
       User ID: {{ userId }}
     </div>
+
     <div class="profile-header">
       <img :src="profileImage" alt="Profile Picture" class="profile-picture" />
       <div class="profile-info">
@@ -13,7 +15,7 @@
           <span>{{ userStats.followers }} Followers</span>
           <span>{{ userStats.following }} Following</span>
         </div>
-        <!-- Follow button: Only visible if not viewing your own profile -->
+        <!-- Follow/Unfollow button -->
         <div v-if="!isOwnProfile">
           <button
             v-if="!isFollowing"
@@ -32,162 +34,177 @@
         </div>
       </div>
     </div>
-    <!-- Single tab for posts only -->
+
+    <!-- Single tab for posts -->
     <div class="tab-navbar">
       <button class="active">
         {{ username }}'s Posts
       </button>
     </div>
     <div class="tab-content">
-      <div>
-        <p>User posts go here.</p>
+      <div v-if="loadingPosts">Loading posts…</div>
+      <div v-else-if="!userPosts.length">
+        No posts from {{ username }} in your circles.
+      </div>
+      <div v-else>
+        <PostView
+          v-for="p in userPosts"
+          :key="p.id"
+          :postId="p.id"
+        >
+          <template #username>
+            {{ username }} in {{ p.circleName }}
+          </template>
+        </PostView>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
-import db from "../firebase/init.js";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  collection,
+  query,
+  where,
+  getDocs
+} from "firebase/firestore";
+import db, { auth } from "../firebase/init.js";
 import blankProfile from "@/assets/blank_profile.png";
-import { auth } from "../firebase/init.js";
+import PostView from "@/components/PostView.vue";
 
 export default {
   name: "VisitProfile",
+  components: { PostView },
   props: {
-    userId: {
-      type: String,
-      required: true
-    }
+    userId: { type: String, required: true }
   },
   data() {
     return {
       user: null,
-      userStats: {
-        posts: 0,
-        followers: 0,
-        following: 0
-      }
+      userStats: { posts: 0, followers: 0, following: 0 },
+      currentUserCircles: [],
+      userPosts: [],
+      loadingPosts: false
     };
   },
   computed: {
     username() {
-      return this.user && this.user.username ? this.user.username : "Anonymous";
+      return (this.user && this.user.username) || "Anonymous";
     },
     profileImage() {
-      return this.user && this.user.profilePicture
-        ? this.user.profilePicture
-        : blankProfile;
+      return (this.user && this.user.profilePicture) || blankProfile;
     },
-    // Check if this is the current user's own profile.
     isOwnProfile() {
-      return auth.currentUser && auth.currentUser.uid === this.userId;
+      return auth.currentUser?.uid === this.userId;
     },
-    // Check if the current user is already following the visited user.
     isFollowing() {
-      if (this.user && this.user.followers && Array.isArray(this.user.followers)) {
-        return this.user.followers.includes(auth.currentUser.uid);
-      }
-      return false;
+      return (
+        this.user &&
+        Array.isArray(this.user.followers) &&
+        this.user.followers.includes(auth.currentUser.uid)
+      );
     }
   },
-  created() {
-    if (this.userId) {
-      const userDocRef = doc(db, "users", this.userId);
-      getDoc(userDocRef)
-        .then((docSnap) => {
-          if (docSnap.exists()) {
-            this.user = docSnap.data();
-            this.userStats = {
-              posts: Array.isArray(this.user.posts) ? this.user.posts.length : 0,
-              followers: Array.isArray(this.user.followers) ? this.user.followers.length : 0,
-              following: Array.isArray(this.user.following) ? this.user.following.length : 0
-            };
-          } else {
-            console.error("No such user exists.");
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching user data:", error);
-        });
-    } else {
-      console.error("No userId provided.");
+  async created() {
+    // load visited user's data
+    const visitedSnap = await getDoc(doc(db, "users", this.userId));
+    if (!visitedSnap.exists()) {
+      console.error("No such user exists.");
+      return;
     }
+    this.user = visitedSnap.data();
+    this.userStats = {
+      posts: Array.isArray(this.user.posts) ? this.user.posts.length : 0,
+      followers: Array.isArray(this.user.followers)
+        ? this.user.followers.length
+        : 0,
+      following: Array.isArray(this.user.following)
+        ? this.user.following.length
+        : 0
+    };
+
+    // load current user's circles
+    const meUid = auth.currentUser?.uid;
+    if (meUid) {
+      const meSnap = await getDoc(doc(db, "users", meUid));
+      this.currentUserCircles = meSnap.exists()
+        ? meSnap.data().user_circles || []
+        : [];
+    }
+
+    // load & filter their posts
+    this.loadUserPosts();
   },
   methods: {
-    followUser() {
-      if (!auth.currentUser) {
-        console.error("User not logged in.");
-        return;
-      }
-      const currentUserId = auth.currentUser.uid;
-      if (currentUserId === this.userId) {
-        console.error("Cannot follow yourself.");
-        return;
-      }
-      const visitedUserRef = doc(db, "users", this.userId);
-      const currentUserRef = doc(db, "users", currentUserId);
-      // Update the visited user's followers array.
-      updateDoc(visitedUserRef, {
-        followers: arrayUnion(currentUserId)
-      })
-        .then(() => {
-          // Update the current user's following array.
-          return updateDoc(currentUserRef, {
-            following: arrayUnion(this.userId)
-          });
-        })
-        .then(() => {
-          this.userStats.followers += 1;
-          if (this.user && Array.isArray(this.user.followers)) {
-            this.user.followers.push(currentUserId);
-          } else if (this.user) {
-            this.user.followers = [currentUserId];
+    async loadUserPosts() {
+      this.loadingPosts = true;
+      const posts = [];
+      const postIds = Array.isArray(this.user.posts) ? this.user.posts : [];
+
+      for (const pid of postIds) {
+        const postSnap = await getDoc(doc(db, "posts", pid));
+        if (!postSnap.exists()) continue;
+        const post = postSnap.data();
+        if (this.currentUserCircles.includes(post.circle_id)) {
+          let circleName = "";
+          const circleSnap = await getDocs(
+            query(
+              collection(db, "circles"),
+              where("circle_id", "==", post.circle_id)
+            )
+          );
+          if (!circleSnap.empty) {
+            circleName = circleSnap.docs[0].data().circle_name;
           }
-        })
-        .catch((error) => {
-          console.error("Error updating follow information:", error);
-        });
+          posts.push({ id: pid, circleName });
+        }
+      }
+
+      this.userPosts = posts;
+      this.loadingPosts = false;
     },
-    unfollowUser() {
-      if (!auth.currentUser) {
-        console.error("User not logged in.");
-        return;
-      }
-      const currentUserId = auth.currentUser.uid;
-      if (currentUserId === this.userId) {
-        console.error("Cannot unfollow yourself.");
-        return;
-      }
-      const visitedUserRef = doc(db, "users", this.userId);
-      const currentUserRef = doc(db, "users", currentUserId);
-      updateDoc(visitedUserRef, {
-        followers: arrayRemove(currentUserId)
-      })
-        .then(() => {
-          return updateDoc(currentUserRef, {
-            following: arrayRemove(this.userId)
-          });
-        })
-        .then(() => {
-          this.userStats.followers -= 1;
-          if (this.user && Array.isArray(this.user.followers)) {
-            this.user.followers = this.user.followers.filter(
-              (id) => id !== currentUserId
-            );
-          }
-        })
-        .catch((error) => {
-          console.error("Error updating unfollow information:", error);
-        });
+    async followUser() {
+      const me = auth.currentUser.uid;
+      if (me === this.userId) return;
+      const visitedRef = doc(db, "users", this.userId);
+      const meRef = doc(db, "users", me);
+      await updateDoc(visitedRef, { followers: arrayUnion(me) });
+      await updateDoc(meRef, { following: arrayUnion(this.userId) });
+      this.userStats.followers++;
+      this.user.followers = [...(this.user.followers || []), me];
+    },
+    async unfollowUser() {
+      const me = auth.currentUser.uid;
+      if (me === this.userId) return;
+      const visitedRef = doc(db, "users", this.userId);
+      const meRef = doc(db, "users", me);
+      await updateDoc(visitedRef, { followers: arrayRemove(me) });
+      await updateDoc(meRef, { following: arrayRemove(this.userId) });
+      this.userStats.followers--;
+      this.user.followers = (this.user.followers || []).filter(id => id !== me);
     }
   }
 };
 </script>
 
 <style scoped>
+/* span both columns of the #app grid */
+:deep(.profile-container) {
+  grid-column: 1 / -1 !important;
+}
+
 .profile-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
   padding: 20px;
+  box-sizing: border-box;
+
 }
 .user-id-display {
   font-size: 14px;
@@ -239,7 +256,6 @@ export default {
 .follow-button.following {
   background-color: #ccc;
   color: #666;
-  cursor: pointer;
 }
 .tab-navbar {
   display: flex;

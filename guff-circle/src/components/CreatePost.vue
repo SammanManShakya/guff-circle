@@ -5,22 +5,7 @@
       placeholder="What's on your mind?"
       class="post-textarea"
     ></textarea>
-    <label for="file-input" class="camera-button">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path
-          fill="white"
-          d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1z"
-        />
-        <path
-          fill="white"
-          d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4z"
-        />
-        <path
-          fill="white"
-          d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5m0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"
-        />
-      </svg>
-    </label>
+
     <input
       id="file-input"
       type="file"
@@ -29,17 +14,37 @@
       ref="fileInput"
       class="post-file-input"
     />
+
     <div v-if="imgContent" class="image-preview-wrapper">
       <button class="remove-btn" @click="removeImage">×</button>
       <img :src="imgContent" alt="Preview" class="image-preview" />
     </div>
-    <button
-      :disabled="!canPost"
-      @click="submitPost"
-      class="post-button"
-    >
-      Post
-    </button>
+
+    <div class="controls">
+      <label for="file-input" class="camera-button">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+          <path
+            fill="white"
+            d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1z"
+          />
+          <path
+            fill="white"
+            d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4z"
+          />
+          <path
+            fill="white"
+            d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5m0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"
+          />
+        </svg>
+      </label>
+      <button
+        :disabled="!canPost"
+        @click="submitPost"
+        class="post-button"
+      >
+        Post
+      </button>
+    </div>
   </div>
 </template>
 
@@ -132,40 +137,33 @@ async function submitPost() {
   flex-direction: column;
   gap: 0.75rem;
 }
+
 .post-textarea {
   width: 100%;
   height: 100px;
   padding: 0.5rem;
   resize: vertical;
 }
-.camera-button {
-  width: 2rem;
-  height: 2rem;
-  background: #007bff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.25rem;
-  cursor: pointer;
-}
-.camera-button svg {
-  width: 1rem;
-  height: 1rem;
-}
+
+/* hide the native file input */
 .post-file-input {
   display: none;
 }
+
+/* image preview (if any) */
 .image-preview-wrapper {
   position: relative;
   width: 150px;
   height: 150px;
 }
+
 .image-preview {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 0.25rem;
 }
+
 .remove-btn {
   position: absolute;
   top: 4px;
@@ -181,13 +179,39 @@ async function submitPost() {
   justify-content: center;
   cursor: pointer;
 }
+
+/* controls row: camera + post button */
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* camera icon */
+.camera-button {
+  width: 2rem;
+  height: 2rem;
+  background: #007bff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.camera-button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Post button stays on same row, vertically centered */
 .post-button {
-  align-self: flex-end;
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 0.25rem;
   cursor: pointer;
 }
+
 .post-button:disabled {
   opacity: 0.5;
   cursor: default;

@@ -15,7 +15,7 @@
   <script setup>
   import { ref, watch, onMounted, onUnmounted, defineProps } from "vue";
   import db from "@/firebase/init.js";
-  import { collection, query, where, getDocs } from "firebase/firestore";
+  import { collection, query, where, onSnapshot } from "firebase/firestore";
   import PostView from "@/components/PostView.vue";
   
   const props = defineProps({
@@ -27,13 +27,16 @@
   
   const postIds = ref([]);
   const loading = ref(true);
-  let intervalId = null;
+  let unsubscribe = null;
   
-  // initial load of all posts, in newest-first order
-  async function fetchPostsForCircle(id) {
+  function subscribeToCircle(id) {
     loading.value = true;
-    postIds.value = [];
+    if (unsubscribe) {
+      unsubscribe();
+      unsubscribe = null;
+    }
     if (!id) {
+      postIds.value = [];
       loading.value = false;
       return;
     }
@@ -41,57 +44,31 @@
       collection(db, "circles"),
       where("circle_id", "==", id)
     );
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      const posts = snap.docs[0].data().circle_posts || [];
-      postIds.value = posts.slice().reverse();
-    }
-    loading.value = false;
-  }
-  
-  // check for any new post IDs and prepend them
-  async function checkForNewPosts(id) {
-    if (!id) return;
-    const q = query(
-      collection(db, "circles"),
-      where("circle_id", "==", id)
-    );
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      const allPosts = snap.docs[0].data().circle_posts || [];
-      const existingSet = new Set(postIds.value);
-      // find posts not already in postIds
-      const additions = allPosts.filter(pid => !existingSet.has(pid));
-      if (additions.length) {
-        // add newest first
-        additions.reverse().forEach(pid => {
-          postIds.value.unshift(pid);
-        });
+    unsubscribe = onSnapshot(q, snap => {
+      if (!snap.empty) {
+        const posts = snap.docs[0].data().circle_posts || [];
+        // newest first:
+        postIds.value = posts.slice().reverse();
+      } else {
+        postIds.value = [];
       }
-    }
+      loading.value = false;
+    });
   }
   
   onMounted(() => {
-    fetchPostsForCircle(props.circleId);
-    intervalId = setInterval(() => {
-      checkForNewPosts(props.circleId);
-    }, 15000);
+    subscribeToCircle(props.circleId);
   });
   
   watch(
     () => props.circleId,
-    (newId) => {
-      fetchPostsForCircle(newId);
-      // reset the interval so we continue checking for the new circle
-      clearInterval(intervalId);
-      intervalId = setInterval(() => {
-        checkForNewPosts(newId);
-      }, 15000);
+    newId => {
+      subscribeToCircle(newId);
     }
   );
   
   onUnmounted(() => {
-    clearInterval(intervalId);
+    if (unsubscribe) unsubscribe();
   });
   </script>
   

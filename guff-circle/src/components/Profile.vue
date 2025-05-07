@@ -106,11 +106,7 @@ export default {
   components: { PostView, SearchItem },
   data() {
     return {
-      userStats: {
-        posts: 0,
-        followers: 0,
-        following: 0
-      },
+      userStats: { posts: 0, followers: 0, following: 0 },
       activeTab: "My Posts",
       userPosts: [],
       loadingPosts: false,
@@ -121,46 +117,31 @@ export default {
   },
   computed: {
     profileImage() {
-      return auth.currentUser && auth.currentUser.photoURL
-        ? auth.currentUser.photoURL
-        : blankProfile;
+      return auth.currentUser?.photoURL || blankProfile;
     },
     username() {
-      return auth.currentUser && auth.currentUser.displayName
-        ? auth.currentUser.displayName
-        : "Anonymous";
+      return auth.currentUser?.displayName || "Anonymous";
     }
   },
   async created() {
     const user = auth.currentUser;
     if (!user) return;
 
-    const userDocRef = doc(db, "users", user.uid);
-    try {
-      const docSnap = await getDoc(userDocRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        this.userStats = {
-          posts: Array.isArray(data.posts) ? data.posts.length : 0,
-          followers: Array.isArray(data.followers)
-            ? data.followers.length
-            : 0,
-          following: Array.isArray(data.following)
-            ? data.following.length
-            : 0
-        };
+    const userDoc = doc(db, "users", user.uid);
+    const snap = await getDoc(userDoc);
+    if (!snap.exists()) return;
 
-        const postIds = Array.isArray(data.posts) ? data.posts : [];
-        this.loadUserPosts(postIds);
+    const data = snap.data();
+    this.userStats = {
+      posts: Array.isArray(data.posts) ? data.posts.length : 0,
+      followers: Array.isArray(data.followers) ? data.followers.length : 0,
+      following: Array.isArray(data.following) ? data.following.length : 0
+    };
 
-        const circleIds = Array.isArray(data.user_circles)
-          ? data.user_circles
-          : [];
-        this.loadUserCircles(circleIds);
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    }
+    // load posts
+    this.loadUserPosts(Array.isArray(data.posts) ? data.posts : []);
+    // load circles
+    this.loadUserCircles(Array.isArray(data.user_circles) ? data.user_circles : []);
   },
   methods: {
     async loadUserPosts(postIds) {
@@ -169,22 +150,22 @@ export default {
       for (const id of postIds) {
         const postSnap = await getDoc(doc(db, "posts", id));
         if (!postSnap.exists()) continue;
-        const postData = postSnap.data();
-        const circleId = postData.circle_id;
-        let circleName = "";
+        const post = postSnap.data();
+        // lookup circle name
         const circleQ = query(
           collection(db, "circles"),
-          where("circle_id", "==", circleId)
+          where("circle_id", "==", post.circle_id)
         );
         const circleSnap = await getDocs(circleQ);
-        if (!circleSnap.empty) {
-          circleName = circleSnap.docs[0].data().circle_name;
-        }
+        const circleName = !circleSnap.empty
+          ? circleSnap.docs[0].data().circle_name
+          : "";
         posts.push({ id, circleName });
       }
       this.userPosts = posts;
       this.loadingPosts = false;
     },
+
     async loadUserCircles(circleIds) {
       this.loadingCircles = true;
       const circles = [];
@@ -194,27 +175,21 @@ export default {
           collection(db, "circles"),
           where("circle_id", "==", cid)
         );
-        const circleSnap = await getDocs(circleQ);
-        if (circleSnap.empty) continue;
-        const circleDoc = circleSnap.docs[0];
-        const circleData = circleDoc.data();
-        const members = Array.isArray(circleData.circle_members)
-          ? circleData.circle_members
+        const snap = await getDocs(circleQ);
+        if (snap.empty) continue;
+        const data = snap.docs[0].data();
+        const members = Array.isArray(data.circle_members)
+          ? data.circle_members
           : [];
         const membersData = [];
         for (const uid of members) {
-          const userSnap = await getDoc(doc(db, "users", uid));
-          if (!userSnap.exists()) continue;
-          const u = userSnap.data();
-          membersData.push({
-            userId: uid,
-            username: u.username,
-            profilePicture: u.profilePicture
-          });
+          const uSnap = await getDoc(doc(db, "users", uid));
+          if (!uSnap.exists()) continue;
+          membersData.push({ userId: uid, ...uSnap.data() });
         }
         circles.push({
           circleId: cid,
-          circleName: circleData.circle_name,
+          circleName: data.circle_name,
           membersData
         });
         show[cid] = false;
@@ -223,18 +198,17 @@ export default {
       this.showMembers = show;
       this.loadingCircles = false;
     },
+
     toggleMembers(cid) {
       this.showMembers[cid] = !this.showMembers[cid];
     },
+
     createCircle() {
-      if (auth.currentUser) {
-        this.$router.push({
-          name: "CreateCircle",
-          params: { currentUserId: auth.currentUser.uid }
-        });
-      } else {
-        console.warn("User not authenticated.");
-      }
+      if (!auth.currentUser) return;
+      this.$router.push({
+        name: "CreateCircle",
+        params: { currentUserId: auth.currentUser.uid }
+      });
     }
   }
 };
@@ -242,13 +216,19 @@ export default {
 
 <style scoped>
 .profile-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
   padding: 20px;
+  box-sizing: border-box;
 }
+
 .profile-header {
   display: flex;
   align-items: center;
   margin-bottom: 20px;
 }
+
 .profile-picture {
   width: 80px;
   height: 80px;
@@ -256,41 +236,48 @@ export default {
   object-fit: cover;
   margin-right: 20px;
 }
+
 .profile-info {
   display: flex;
   flex-direction: column;
 }
+
 .username {
   font-size: 24px;
   font-weight: bold;
   margin: 0;
 }
+
 .user-stats {
   margin-top: 5px;
   font-size: 14px;
   color: #666;
 }
+
 .user-stats span {
   margin-right: 10px;
 }
+
 .create-circle-button {
   margin-top: 10px;
   padding: 8px 16px;
-  font-size: 14px;
   background-color: #734f96;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
+
 .create-circle-button:hover {
   background-color: #5b3e7a;
 }
+
 .tab-navbar {
   display: flex;
   justify-content: center;
   margin-bottom: 10px;
 }
+
 .tab-navbar button {
   background: none;
   border: none;
@@ -299,32 +286,39 @@ export default {
   cursor: pointer;
   color: #734f96;
 }
+
 .tab-navbar button.active {
   border-bottom: 2px solid #734f96;
   font-weight: bold;
 }
+
 .tab-content {
   padding: 10px;
   border: 1px solid #ccc;
 }
+
 .circle-item {
   margin-bottom: 1rem;
 }
+
 .circle-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .members-toggle {
   background: none;
   border: none;
   color: #734f96;
   cursor: pointer;
 }
+
 .circle-members {
   margin-top: 0.5rem;
   padding-left: 1rem;
 }
+
 .member-pic {
   width: 32px;
   height: 32px;

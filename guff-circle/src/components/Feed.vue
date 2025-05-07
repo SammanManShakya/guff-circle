@@ -1,9 +1,7 @@
 <template>
     <div class="feed-container">
-      <h1>Feed</h1>
       <div v-if="loading">Loading your circles…</div>
       <div v-else>
-        <label for="circle-select">Choose a circle:</label>
         <select id="circle-select" v-model="selectedCircle">
           <option disabled value="">-- Select a circle --</option>
           <option
@@ -15,9 +13,7 @@
           </option>
         </select>
   
-        <p v-if="selectedCircle">
-          Selected circle_id: {{ selectedCircle }}
-        </p>
+       
   
         <CreatePost
           v-if="selectedCircle"
@@ -86,26 +82,30 @@
   
   <style scoped>
   .feed-container {
-    flex: 1;
+    /* fixed width centered */
+    width: 600px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
-    width: 100%;
     padding: 1rem;
     box-sizing: border-box;
   }
   
-  label {
-    display: block;
-    margin-bottom: 0.5em;
-  }
-  
   select {
-    margin-bottom: 1em;
+    /* center dropdown and set width */
+    width: 450px;
+    margin: 1rem auto 1em;
     padding: 0.4em;
-    width: 100%;
+  
+    /* center the placeholder text */
+    text-align: center;
+    /* for some browsers to center the selected option as well */
+    text-align-last: center;
   }
   
-  .create-post {
+  /* ensure CreatePost & PostList fill that fixed width */
+  .create-post,
+  .post-list {
     width: 100%;
   }
   </style>
