@@ -9,7 +9,6 @@
           <span>{{ userStats.followers }} Followers</span>
           <span>{{ userStats.following }} Following</span>
         </div>
-        <!-- Create गफ Circle button -->
         <button @click="createCircle" class="create-circle-button">
           Create गफ Circle
         </button>
@@ -33,10 +32,55 @@
 
     <div class="tab-content">
       <div v-if="activeTab === 'My Posts'">
-        <p>User posts go here.</p>
+        <div v-if="loadingPosts">Loading posts…</div>
+        <div v-else-if="!userPosts.length">No posts yet.</div>
+        <div v-else>
+          <PostView
+            v-for="p in userPosts"
+            :key="p.id"
+            :postId="p.id"
+          >
+            <template #username>{{ username }} in {{ p.circleName }}</template>
+          </PostView>
+        </div>
       </div>
+
       <div v-else-if="activeTab === 'My Circles'">
-        <p>User circles go here.</p>
+        <div v-if="loadingCircles">Loading circles…</div>
+        <div v-else-if="!userCircles.length">Not in any circles.</div>
+        <div v-else>
+          <div
+            v-for="circle in userCircles"
+            :key="circle.circleId"
+            class="circle-item"
+          >
+            <div class="circle-header">
+              <span class="circle-name">{{ circle.circleName }}</span>
+              <button
+                @click="toggleMembers(circle.circleId)"
+                class="members-toggle"
+              >
+                {{ showMembers[circle.circleId] ? 'Hide Members' : 'Show Members' }}
+              </button>
+            </div>
+            <div v-show="showMembers[circle.circleId]" class="circle-members">
+              <SearchItem
+                v-for="member in circle.membersData"
+                :key="member.userId"
+                :userId="member.userId"
+              >
+                <template #profile-pic>
+                  <img
+                    :src="member.profilePicture || blankProfile"
+                    alt="Profile"
+                    class="member-pic"
+                  />
+                </template>
+                <template #username>{{ member.username }}</template>
+              </SearchItem>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -45,19 +89,34 @@
 <script>
 import { auth } from "../firebase/init.js";
 import blankProfile from "@/assets/blank_profile.png";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs
+} from "firebase/firestore";
 import db from "../firebase/init.js";
+import PostView from "@/components/PostView.vue";
+import SearchItem from "@/components/SearchItem.vue";
 
 export default {
   name: "Profile",
+  components: { PostView, SearchItem },
   data() {
     return {
       userStats: {
         posts: 0,
         followers: 0,
-        following: 0,
+        following: 0
       },
       activeTab: "My Posts",
+      userPosts: [],
+      loadingPosts: false,
+      userCircles: [],
+      loadingCircles: false,
+      showMembers: {}
     };
   },
   computed: {
@@ -70,45 +129,114 @@ export default {
       return auth.currentUser && auth.currentUser.displayName
         ? auth.currentUser.displayName
         : "Anonymous";
-    },
+    }
   },
-  created() {
-    if (auth.currentUser) {
-      const userDocRef = doc(db, "users", auth.currentUser.uid);
-      getDoc(userDocRef)
-        .then((docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            this.userStats = {
-              posts: Array.isArray(data.posts) ? data.posts.length : 0,
-              followers: Array.isArray(data.followers)
-                ? data.followers.length
-                : 0,
-              following: Array.isArray(data.following)
-                ? data.following.length
-                : 0,
-            };
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching user stats:", error);
-        });
+  async created() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userDocRef = doc(db, "users", user.uid);
+    try {
+      const docSnap = await getDoc(userDocRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        this.userStats = {
+          posts: Array.isArray(data.posts) ? data.posts.length : 0,
+          followers: Array.isArray(data.followers)
+            ? data.followers.length
+            : 0,
+          following: Array.isArray(data.following)
+            ? data.following.length
+            : 0
+        };
+
+        const postIds = Array.isArray(data.posts) ? data.posts : [];
+        this.loadUserPosts(postIds);
+
+        const circleIds = Array.isArray(data.user_circles)
+          ? data.user_circles
+          : [];
+        this.loadUserCircles(circleIds);
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
     }
   },
   methods: {
+    async loadUserPosts(postIds) {
+      this.loadingPosts = true;
+      const posts = [];
+      for (const id of postIds) {
+        const postSnap = await getDoc(doc(db, "posts", id));
+        if (!postSnap.exists()) continue;
+        const postData = postSnap.data();
+        const circleId = postData.circle_id;
+        let circleName = "";
+        const circleQ = query(
+          collection(db, "circles"),
+          where("circle_id", "==", circleId)
+        );
+        const circleSnap = await getDocs(circleQ);
+        if (!circleSnap.empty) {
+          circleName = circleSnap.docs[0].data().circle_name;
+        }
+        posts.push({ id, circleName });
+      }
+      this.userPosts = posts;
+      this.loadingPosts = false;
+    },
+    async loadUserCircles(circleIds) {
+      this.loadingCircles = true;
+      const circles = [];
+      const show = {};
+      for (const cid of circleIds) {
+        const circleQ = query(
+          collection(db, "circles"),
+          where("circle_id", "==", cid)
+        );
+        const circleSnap = await getDocs(circleQ);
+        if (circleSnap.empty) continue;
+        const circleDoc = circleSnap.docs[0];
+        const circleData = circleDoc.data();
+        const members = Array.isArray(circleData.circle_members)
+          ? circleData.circle_members
+          : [];
+        const membersData = [];
+        for (const uid of members) {
+          const userSnap = await getDoc(doc(db, "users", uid));
+          if (!userSnap.exists()) continue;
+          const u = userSnap.data();
+          membersData.push({
+            userId: uid,
+            username: u.username,
+            profilePicture: u.profilePicture
+          });
+        }
+        circles.push({
+          circleId: cid,
+          circleName: circleData.circle_name,
+          membersData
+        });
+        show[cid] = false;
+      }
+      this.userCircles = circles;
+      this.showMembers = show;
+      this.loadingCircles = false;
+    },
+    toggleMembers(cid) {
+      this.showMembers[cid] = !this.showMembers[cid];
+    },
     createCircle() {
       if (auth.currentUser) {
         this.$router.push({
           name: "CreateCircle",
-          params: {
-            currentUserId: auth.currentUser.uid,
-          },
+          params: { currentUserId: auth.currentUser.uid }
         });
       } else {
         console.warn("User not authenticated.");
       }
-    },
-  },
+    }
+  }
 };
 </script>
 
@@ -178,5 +306,30 @@ export default {
 .tab-content {
   padding: 10px;
   border: 1px solid #ccc;
+}
+.circle-item {
+  margin-bottom: 1rem;
+}
+.circle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.members-toggle {
+  background: none;
+  border: none;
+  color: #734f96;
+  cursor: pointer;
+}
+.circle-members {
+  margin-top: 0.5rem;
+  padding-left: 1rem;
+}
+.member-pic {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 8px;
 }
 </style>
