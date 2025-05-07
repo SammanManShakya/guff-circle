@@ -2,7 +2,7 @@
   <div class="create-post">
     <textarea
       v-model="textContent"
-      placeholder="What's on your mind?"
+      placeholder="नयाँ गफ के छ?"
       class="post-textarea"
     ></textarea>
 

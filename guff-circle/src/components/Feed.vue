@@ -3,7 +3,7 @@
       <div v-if="loading">Loading your circles…</div>
       <div v-else>
         <select id="circle-select" v-model="selectedCircle">
-          <option disabled value="">-- Select a circle --</option>
+          <option disabled value="">-- Select a गफ circle --</option>
           <option
             v-for="circle in circlesList"
             :key="circle.id"
