@@ -15,7 +15,12 @@
   <script setup>
   import { ref, watch, onMounted, onUnmounted, defineProps } from "vue";
   import db from "@/firebase/init.js";
-  import { collection, query, where, onSnapshot } from "firebase/firestore";
+  import {
+    collection,
+    query,
+    where,
+    onSnapshot
+  } from "firebase/firestore";
   import PostView from "@/components/PostView.vue";
   
   const props = defineProps({
@@ -31,23 +36,28 @@
   
   function subscribeToCircle(id) {
     loading.value = true;
+    // tear down previous listener
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = null;
     }
+  
     if (!id) {
       postIds.value = [];
       loading.value = false;
       return;
     }
+  
+    // listen to the circle document
     const q = query(
       collection(db, "circles"),
       where("circle_id", "==", id)
     );
+  
     unsubscribe = onSnapshot(q, snap => {
       if (!snap.empty) {
+        // grab the circle_posts array, reverse for newest-first
         const posts = snap.docs[0].data().circle_posts || [];
-        // newest first:
         postIds.value = posts.slice().reverse();
       } else {
         postIds.value = [];

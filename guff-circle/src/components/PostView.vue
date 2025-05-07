@@ -30,7 +30,7 @@
         </slot>
       </div>
   
-      <!-- Actions: like & comment -->
+      <!-- Actions: like, comment & delete -->
       <div class="post-actions">
         <!-- Like button -->
         <button
@@ -38,22 +38,17 @@
           class="action-button like-button"
           :style="{ color: liked ? '#e0245e' : '#888' }"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16" height="16"
-            fill="currentColor"
-            :class="liked ? 'bi-heart-fill' : 'bi-heart'"
-            viewBox="0 0 16 16"
-          >
-            <path
-              v-if="liked"
-              fill-rule="evenodd"
-              d="M8 1.314C12.438-3.248 23.534 4.735 8 15 -7.534 4.736 3.562-3.248 8 1.314z"
-            />
-            <path
-              v-else
-              d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+               fill="currentColor" :class="liked ? 'bi-heart-fill' : 'bi-heart'"
+               viewBox="0 0 16 16">
+            <path v-if="liked" fill-rule="evenodd"
+                  d="M8 1.314C12.438-3.248 23.534 4.735 8 15 -7.534 4.736 3.562-3.248 8 1.314z"/>
+            <path v-else
+                  d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053
+                     c-.523 1.023-.641 2.5.314 4.385.92 1.815
+                     2.834 3.989 6.286 6.357 3.452-2.368
+                     5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385
+                     C13.486.878 10.4.28 8.717 2.01L8 2.748z"/>
           </svg>
         </button>
         <span class="like-count">{{ likes.length }}</span>
@@ -64,41 +59,47 @@
           class="action-button comment-button"
           :style="{ color: showComments ? '#734f96' : '#888' }"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16" height="16"
-            fill="currentColor"
-            class="bi bi-chat"
-            viewBox="0 0 16 16"
-          >
-            <path
-              d="M2 2h12v11H5.414L2 15.414V2zm1 1v10.586l2.586-2.586H13V3H3z"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+               fill="currentColor" class="bi bi-chat" viewBox="0 0 16 16">
+            <path d="M2 2h12v11H5.414L2 15.414V2zm1 1v10.586l2.586-2.586H13V3H3z"/>
           </svg>
         </button>
         <span class="comment-count">{{ commentsList.length }}</span>
+  
+        <!-- Delete button (only own posts) -->
+        <button
+          v-if="isOwnPost"
+          @click="deletePost"
+          class="action-button delete-button"
+          title="Delete post"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+               fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+            <path
+              d="M5.5 5.5A.5.5 0 0 1 6 5h4a.5.5 0 0 1 .5.5v8a
+                 .5.5 0 0 1-.5.5H6a.5.5 0 0 1-.5-.5v-8z"/>
+            <path fill-rule="evenodd"
+                  d="M14.5 3a1 1 0 0 1-1 1H13v9.5
+                     A1.5 1.5 0 0 1 11.5 15h-7A1.5 1.5 0 0 1 3
+                     13.5V4H2.5a1 1 0 0 1 0-2h3a1 1 0 0 1 1-1h4
+                     a1 1 0 0 1 1 1h3a1 1 0 0 1 1 1zM4.118
+                     4 4 4.059V13.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0
+                     .5-.5V4.059L11.882 4H4.118zM2.5
+                     3h11V2h-11v1z"/>
+          </svg>
+        </button>
       </div>
   
       <!-- Collapsible comments + input -->
       <transition name="fade">
         <div v-if="showComments">
-          <!-- Comment input -->
           <Comment
             :postId="postId"
             @comment-posted="handleCommentPosted"
           />
-  
-          <!-- Existing comments -->
           <div class="comments-list" v-if="commentsList.length">
-            <div
-              v-for="(c, i) in commentsList"
-              :key="i"
-              class="comment-item"
-            >
-              <img
-                :src="c.profilePicture || placeholder"
-                class="commenter-pic"
-              />
+            <div v-for="(c, i) in commentsList" :key="i" class="comment-item">
+              <img :src="c.profilePicture || placeholder" class="commenter-pic"/>
               <div class="comment-body">
                 <span class="commenter-name">{{ c.username }}</span>
                 <p class="comment-text">{{ c.text }}</p>
@@ -111,36 +112,39 @@
   </template>
   
   <script>
-  import db, { auth } from "@/firebase/init.js";
   import {
     doc,
     getDoc,
-    onSnapshot,
+    deleteDoc,
     updateDoc,
-    arrayUnion,
-    arrayRemove
+    arrayRemove,
+    arrayUnion,      // ← add arrayUnion
+    onSnapshot,
+    getDocs,         // ← add getDocs
+    collection,      // ← add collection
+    query,           // ← add query
+    where            // ← add where
   } from "firebase/firestore";
+  import { auth } from "@/firebase/init.js";
+  import db from "@/firebase/init.js";
   import Comment from "@/components/Comment.vue";
   
   export default {
     name: "PostView",
     components: { Comment },
-    props: {
-      postId: { type: String, required: true }
-    },
+    props: { postId: { type: String, required: true } },
     data() {
       return {
         authorId: "",
+        circleId: "",
         user: { username: "", profilePicture: "" },
         text: "",
         imgContent: "",
         likes: [],
         commentsList: [],
-  
         showComments: false,
         loading: true,
         placeholder: "https://via.placeholder.com/32",
-  
         unsubscribe: null
       };
     },
@@ -174,51 +178,68 @@
       async toggleLike() {
         const uid = auth.currentUser.uid;
         const postRef = doc(db, "posts", this.postId);
-        if (this.liked) {
-          await updateDoc(postRef, { likes: arrayRemove(uid) });
-        } else {
-          await updateDoc(postRef, { likes: arrayUnion(uid) });
-        }
+        const op = this.liked ? arrayRemove(uid) : arrayUnion(uid);
+        await updateDoc(postRef, { likes: op });
       },
       handleCommentPosted() {
         this.showComments = false;
+      },
+      async deletePost() {
+        if (!confirm("Delete this post?")) return;
+  
+        // 1) delete post document
+        await deleteDoc(doc(db, "posts", this.postId));
+  
+        // 2) remove from circle.circle_posts
+        const circleSnap = await getDocs(
+          query(
+            collection(db, "circles"),
+            where("circle_id", "==", this.circleId)
+          )
+        );
+        circleSnap.forEach(cDoc =>
+          updateDoc(cDoc.ref, {
+            circle_posts: arrayRemove(this.postId)
+          })
+        );
+  
+        // 3) remove from user.posts
+        await updateDoc(doc(db, "users", this.authorId), {
+          posts: arrayRemove(this.postId)
+        });
       }
     },
     mounted() {
       const postRef = doc(db, "posts", this.postId);
-  
       this.unsubscribe = onSnapshot(postRef, async snap => {
         if (!snap.exists()) return;
-        const post = snap.data();
+        const data = snap.data();
   
-        // update all fields
-        this.authorId = post.user_id;
-        this.text = post.text_content || "";
-        this.imgContent = post.img_content || "";
-        this.likes = post.likes || [];
+        this.authorId   = data.user_id;
+        this.circleId   = data.circle_id;
+        this.text       = data.text_content || "";
+        this.imgContent = data.img_content || "";
+        this.likes      = data.likes || [];
   
-        const raw = post.comments || [];
+        // load comments
+        const raw = data.comments || [];
         this.commentsList = await Promise.all(
           raw.map(async str => {
             let userId, text;
-            try {
-              [userId, text] = JSON.parse(str);
-            } catch {
-              userId = ""; text = str;
-            }
+            try { [userId, text] = JSON.parse(str); }
+            catch { userId = ""; text = str; }
             const uSnap = await getDoc(doc(db, "users", userId));
-            const u = uSnap.exists() ? uSnap.data() : {};
             return {
-              userId,
-              username: u.username || "Unknown",
-              profilePicture: u.profilePicture || "",
+              username: uSnap.exists() ? uSnap.data().username : "Unknown",
+              profilePicture: uSnap.exists() ? uSnap.data().profilePicture : "",
               text
             };
           })
         );
   
-        const authorSnap = await getDoc(doc(db, "users", this.authorId));
-        if (authorSnap.exists()) this.user = authorSnap.data();
+        // load author info
+        const aSnap = await getDoc(doc(db, "users", this.authorId));
+        if (aSnap.exists()) this.user = aSnap.data();
   
         this.loading = false;
       });
@@ -256,7 +277,6 @@
   .username-link:hover {
     text-decoration: underline;
   }
-  
   .post-content {
     margin-top: 0.5rem;
   }
@@ -269,7 +289,6 @@
     border-radius: 0.5rem;
     object-fit: cover;
   }
-  
   .post-actions {
     display: flex;
     align-items: center;
@@ -287,7 +306,12 @@
     font-size: 0.9rem;
     color: #555;
   }
-  
+  .delete-button svg {
+    color: #c82333;
+  }
+  .delete-button:hover svg {
+    color: #a71d2a;
+  }
   .comments-list {
     margin-top: 1rem;
   }
@@ -313,7 +337,6 @@
   .comment-text {
     margin: 0.25rem 0 0;
   }
-  
   /* simple fade transition */
   .fade-enter-active, .fade-leave-active {
     transition: opacity .2s;
