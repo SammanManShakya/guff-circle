@@ -36,7 +36,6 @@
   
   function subscribeToCircle(id) {
     loading.value = true;
-    // tear down previous listener
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = null;
@@ -48,7 +47,7 @@
       return;
     }
   
-    // listen to the circle document
+    // listen to the circles collection
     const q = query(
       collection(db, "circles"),
       where("circle_id", "==", id)
@@ -56,7 +55,7 @@
   
     unsubscribe = onSnapshot(q, snap => {
       if (!snap.empty) {
-        // grab the circle_posts array, reverse for newest-first
+        // reverse circle_posts to show latest posts first
         const posts = snap.docs[0].data().circle_posts || [];
         postIds.value = posts.slice().reverse();
       } else {

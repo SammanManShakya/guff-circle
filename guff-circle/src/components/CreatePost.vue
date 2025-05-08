@@ -145,12 +145,11 @@ async function submitPost() {
   resize: vertical;
 }
 
-/* hide the native file input */
 .post-file-input {
   display: none;
 }
 
-/* image preview (if any) */
+/* image preview if attached */
 .image-preview-wrapper {
   position: relative;
   width: 150px;
@@ -180,7 +179,7 @@ async function submitPost() {
   cursor: pointer;
 }
 
-/* controls row: camera + post button */
+/* controls for camera + post button */
 .controls {
   display: flex;
   align-items: center;
@@ -204,7 +203,6 @@ async function submitPost() {
   height: 1rem;
 }
 
-/* Post button stays on same row, vertically centered */
 .post-button {
   padding: 0.5rem 1rem;
   border: none;

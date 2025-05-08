@@ -49,7 +49,7 @@
     font-weight: bold;
     color: #734f96;
     text-decoration: none;
-    cursor: pointer; /* Ensures the link displays as clickable */
+    cursor: pointer; 
   }
   
   .username-link:hover {

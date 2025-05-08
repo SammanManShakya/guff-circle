@@ -52,7 +52,7 @@
           comments: arrayUnion(commentStr)
         });
   
-        // notify parent immediately
+        // update the main component to reflect change
         this.$emit("comment-posted", { userId, text });
         this.newComment = "";
       }

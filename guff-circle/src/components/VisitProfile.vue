@@ -1,10 +1,6 @@
 <template>
-  <!-- root wrapper still has class="profile-container" -->
   <div class="profile-container">
-    <!-- Display the user ID for error checking -->
-    <div class="user-id-display">
-      User ID: {{ userId }}
-    </div>
+    
 
     <div class="profile-header">
       <img :src="profileImage" alt="Profile Picture" class="profile-picture" />
@@ -15,7 +11,6 @@
           <span>{{ userStats.followers }} Followers</span>
           <span>{{ userStats.following }} Following</span>
         </div>
-        <!-- Follow/Unfollow button -->
         <div v-if="!isOwnProfile">
           <button
             v-if="!isFollowing"
@@ -35,7 +30,6 @@
       </div>
     </div>
 
-    <!-- Single tab for posts -->
     <div class="tab-navbar">
       <button class="active">
         {{ username }}'s Posts
@@ -111,7 +105,6 @@ export default {
     }
   },
   async created() {
-    // load visited user's data
     const visitedSnap = await getDoc(doc(db, "users", this.userId));
     if (!visitedSnap.exists()) {
       console.error("No such user exists.");
@@ -128,7 +121,6 @@ export default {
         : 0
     };
 
-    // load current user's circles
     const meUid = auth.currentUser?.uid;
     if (meUid) {
       const meSnap = await getDoc(doc(db, "users", meUid));
@@ -137,7 +129,6 @@ export default {
         : [];
     }
 
-    // load & filter their posts
     this.loadUserPosts();
   },
   methods: {
@@ -193,7 +184,6 @@ export default {
 </script>
 
 <style scoped>
-/* span both columns of the #app grid */
 :deep(.profile-container) {
   grid-column: 1 / -1 !important;
 }

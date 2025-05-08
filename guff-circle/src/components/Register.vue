@@ -76,7 +76,6 @@ export default {
             });
           }).then((base64data) => {
             this.profilePicture = base64data;
-            // write Firestore user doc
             return setDoc(doc(db, "users", user.uid), {
               user_id: user.uid,
               username: this.username,

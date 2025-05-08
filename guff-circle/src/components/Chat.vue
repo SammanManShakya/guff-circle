@@ -53,7 +53,7 @@
           </div>
         </div>
 
-        <!-- Image preview above the input -->
+        <!-- Image preview before sending msg w/ img -->
         <div v-if="pendingImage" class="pending-image">
           <button class="remove-image" @click="removeImage">×</button>
           <img :src="pendingImage" class="pending-img-preview" />
@@ -229,7 +229,7 @@ export default {
         });
       });
     },
-
+// image to base64 string
     onFileSelected(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -378,7 +378,6 @@ export default {
   border-radius: 8px;
 }
 
-/* pending-image preview */
 .pending-image {
   display: flex;
   align-items: center;
@@ -425,7 +424,7 @@ export default {
   background-color: #5a3b6d;
 }
 
-/* camera button */
+ /* camera button  */
 .camera-button {
   display: inline-flex;
   align-items: center;

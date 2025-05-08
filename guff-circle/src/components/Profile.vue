@@ -25,7 +25,6 @@
             class="settings-button"
             title="Settings"
           >
-            <!-- hollow gear with solid center -->
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16" height="16"
@@ -33,14 +32,12 @@
               class="bi bi-gear"
               viewBox="0 0 16 16"
             >
-              <!-- inner circle -->
               <path
                 d="M8 4.754a3.246 3.246 0 1 0 0 6.492
                    3.246 3.246 0 0 0 0-6.492zM5.754 8
                    a2.246 2.246 0 1 1 4.492 0
                    2.246 2.246 0 0 1-4.492 0z"
               />
-              <!-- outer gear teeth -->
               <path
                 fill-rule="evenodd"
                 d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 
@@ -189,7 +186,6 @@ export default {
     };
   },
   computed: {
-    // now coming from Firestore, not auth.photoURL
     profileImage() {
       return this.profilePic || blankProfile;
     },
@@ -201,7 +197,7 @@ export default {
     const user = auth.currentUser;
     if (!user) return;
 
-    // load your Firestore user doc
+    // load firestore user doc
     const uRef = doc(db, "users", user.uid);
     const snap = await getDoc(uRef);
     if (!snap.exists()) return;

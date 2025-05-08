@@ -82,7 +82,6 @@
   
   <style scoped>
   .feed-container {
-    /* fixed width centered */
     width: 600px;
     margin: 0 auto;
     display: flex;
@@ -92,18 +91,14 @@
   }
   
   select {
-    /* center dropdown and set width */
     width: 450px;
     margin: 1rem auto 1em;
     padding: 0.4em;
   
-    /* center the placeholder text */
     text-align: center;
-    /* for some browsers to center the selected option as well */
     text-align-last: center;
   }
   
-  /* ensure CreatePost & PostList fill that fixed width */
   .create-post,
   .post-list {
     width: 100%;

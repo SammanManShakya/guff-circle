@@ -18,7 +18,6 @@
       <section class="section">
         <label>Profile Picture</label>
         <label for="file-input" class="camera-button">
-          <!-- outline camera icon -->
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16" height="16"
@@ -53,7 +52,7 @@
         </div>
       </section>
   
-      <!-- Change Password (hidden for Google users) -->
+      <!-- Change Password (only for users who didnt use google auth) -->
       <section class="section" v-if="!isGoogleUser">
         <label for="current-password">Current Password</label>
         <input
@@ -86,7 +85,7 @@
         />
       </section>
   
-      <!-- Action Buttons -->
+      <!-- Buttons -->
       <div class="buttons">
         <button
           :disabled="!isDirty"
@@ -117,7 +116,6 @@
   
   const router = useRouter();
   
-  // form state
   const username        = ref("");
   const originalUsername= ref("");
   const imgContent      = ref("");
@@ -147,7 +145,7 @@
     originalUsername.value = username.value;
   });
   
-  // file → base64
+  // image to base64
   function onFileChange(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -182,12 +180,12 @@
     canChangePassword.value
   );
   
-  // update only the username field in Firestore (won’t wipe others)
+  // update only the username field in Firestore (wont reset user account anymore)
   async function applyUsername() {
     const user = auth.currentUser;
     const uRef = doc(db, "users", user.uid);
     await updateDoc(uRef, { username: username.value.trim() });
-    // also update Auth displayName
+    // update name
     await updateProfile(user, { displayName: username.value.trim() });
     originalUsername.value = username.value.trim();
   }
@@ -211,7 +209,7 @@
       await reauthenticateWithCredential(user, cred);
     } catch {
       wrongCurrent.value = true;
-      return;  // abort
+      return;  
     }
     // update
     await updatePassword(user, newPassword.value);
@@ -231,7 +229,7 @@
     router.push({ name: "Profile" });
   }
   
-  // Cancel → redirect without saving
+  // Cancel & redirect
   function cancel() {
     router.push({ name: "Profile" });
   }

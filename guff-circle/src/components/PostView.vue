@@ -1,6 +1,5 @@
 <template>
     <div class="post-view" v-if="!loading">
-      <!-- Post header -->
       <div class="post-header">
         <div class="profile-pic">
           <slot name="profile-pic">
@@ -30,7 +29,6 @@
         </slot>
       </div>
   
-      <!-- Actions: like, comment & delete -->
       <div class="post-actions">
         <!-- Like button -->
         <button
@@ -53,7 +51,6 @@
         </button>
         <span class="like-count">{{ likes.length }}</span>
   
-        <!-- Comment toggle -->
         <button
           @click="showComments = !showComments"
           class="action-button comment-button"
@@ -66,7 +63,7 @@
         </button>
         <span class="comment-count">{{ commentsList.length }}</span>
   
-        <!-- Delete button (only own posts) -->
+        <!-- Delete button -->
         <button
           v-if="isOwnPost"
           @click="deletePost"
@@ -90,7 +87,7 @@
         </button>
       </div>
   
-      <!-- Collapsible comments + input -->
+      <!-- Collapsible comments section -->
       <transition name="fade">
         <div v-if="showComments">
           <Comment
@@ -118,12 +115,12 @@
     deleteDoc,
     updateDoc,
     arrayRemove,
-    arrayUnion,      // ← add arrayUnion
+    arrayUnion,      
     onSnapshot,
-    getDocs,         // ← add getDocs
-    collection,      // ← add collection
-    query,           // ← add query
-    where            // ← add where
+    getDocs,         
+    collection,      
+    query,         
+    where           
   } from "firebase/firestore";
   import { auth } from "@/firebase/init.js";
   import db from "@/firebase/init.js";
@@ -187,10 +184,10 @@
       async deletePost() {
         if (!confirm("Delete this post?")) return;
   
-        // 1) delete post document
+        // delete post from firebase
         await deleteDoc(doc(db, "posts", this.postId));
   
-        // 2) remove from circle.circle_posts
+        // remove from circle.circle_posts
         const circleSnap = await getDocs(
           query(
             collection(db, "circles"),
@@ -203,7 +200,7 @@
           })
         );
   
-        // 3) remove from user.posts
+        // remove from users.posts
         await updateDoc(doc(db, "users", this.authorId), {
           posts: arrayRemove(this.postId)
         });
@@ -237,7 +234,7 @@
           })
         );
   
-        // load author info
+        // get author info
         const aSnap = await getDoc(doc(db, "users", this.authorId));
         if (aSnap.exists()) this.user = aSnap.data();
   
@@ -337,7 +334,6 @@
   .comment-text {
     margin: 0.25rem 0 0;
   }
-  /* simple fade transition */
   .fade-enter-active, .fade-leave-active {
     transition: opacity .2s;
   }

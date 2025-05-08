@@ -9,7 +9,6 @@
       <router-link class="nav-link" to="/chat">Chat</router-link>
     </div>
     <div class="navbar-right">
-      <!-- Using a form so that Enter triggers a submit -->
       <form @submit.prevent="goToSearchResults">
         <input
           type="text"
