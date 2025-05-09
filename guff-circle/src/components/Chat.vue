@@ -370,7 +370,6 @@ export default {
   margin-left: auto;
 }
 
-/* image inside bubble */
 .chat-image {
   max-width: 100%;
   max-height: 200px;
@@ -424,7 +423,6 @@ export default {
   background-color: #5a3b6d;
 }
 
- /* camera button  */
 .camera-button {
   display: inline-flex;
   align-items: center;

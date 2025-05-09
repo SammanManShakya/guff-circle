@@ -206,7 +206,6 @@ export default {
     // use Firestore’s profilePicture
     this.profilePic = data.profilePicture || "";
 
-    // stats
     this.userStats = {
       posts: Array.isArray(data.posts) ? data.posts.length : 0,
       followers: Array.isArray(data.followers) ? data.followers.length : 0,

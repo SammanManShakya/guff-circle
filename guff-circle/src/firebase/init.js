@@ -1,21 +1,18 @@
-// src/Firebase/init.js
-import { getFirestore } from "firebase/firestore";
+// src/firebase/init.js
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDEe0NO3aRDJrSGzdILANWWtIwwaYAdbKU",
-  authDomain: "guff-circle.firebaseapp.com",
-  projectId: "guff-circle",
-  storageBucket: "guff-circle.firebasestorage.app",
-  messagingSenderId: "947812911722",
-  appId: "1:947812911722:web:ad1bf826292a3048ad5813"
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 export const auth = getAuth(app);
+const db = getFirestore(app);
 export default db;
-
-
-

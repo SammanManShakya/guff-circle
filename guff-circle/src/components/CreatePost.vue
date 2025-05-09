@@ -149,7 +149,6 @@ async function submitPost() {
   display: none;
 }
 
-/* image preview if attached */
 .image-preview-wrapper {
   position: relative;
   width: 150px;
@@ -179,14 +178,12 @@ async function submitPost() {
   cursor: pointer;
 }
 
-/* controls for camera + post button */
 .controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-/* camera icon */
 .camera-button {
   width: 2rem;
   height: 2rem;
